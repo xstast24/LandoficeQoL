@@ -1,13 +1,14 @@
 {
-  "manifest_version": 2,
+  "manifest_version": 3,
   "name": "Landofice QoL",
   "description": "Provide convenient utils for landofice.com players.",
-  "version": "0.1",
+  "version": "0.2",
   "author": "Bota007",
   "permissions": [
     "storage",
-    "webRequest",
-    "webRequestBlocking",
+    "webRequest"
+  ],
+  "host_permissions": [
     "http://*.landofice.com/*"
   ],
   "icons": {
@@ -15,7 +16,7 @@
       "48": "icon48.png",
       "128": "icon128.png"
     },
-  "browser_action": {
+  "action": {
     "default_popup": "popup/popup.html",
     "default_title": "Landofice QoL"
   },

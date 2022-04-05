@@ -1,0 +1,12 @@
+Javascript IDE - WebStorm by JetBrains
+
+URL matching https://developer.chrome.com/docs/extensions/mv3/match_patterns/ used e.g. in manifest.json -> permissions & content_scripts -> matches
+"http://*.landofice.com/*" matches all landofice domains, heaven.landofice.com, landofice.com, www.landofice.com
+
+ICONS
+Chrome icon requirements: https://developer.chrome.com/apps/manifest/icons
+Create icons in https://www.mathcha.io/editor (vector graphics), then download HD png & use e.g. https://www.online-image-editor.com to rectangle-crop it and resize to 128px
+Or we could download SVG and convert to png while setting a desired re-size (vector scales to whatever size we need with no compression loss),
+but I tried ~10 online svg→png tools and 3 not working, 3 generated the img incorrectly, the rest didn't allow size setting. It is easier to just crop PNG.
+
+TODO upgrade to manifest v3 v2 is supported only until Jan 2023 https://developer.chrome.com/docs/extensions/mv3/intro/mv3-migration/
