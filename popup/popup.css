@@ -1,0 +1,155 @@
+/* WINDOW SIZE */
+body {
+    width: 500px;
+    height: 400px;
+    background: radial-gradient(ellipse at top, lightblue, transparent), radial-gradient(ellipse at bottom, honeydew, transparent);
+}
+
+/*MAIN SWITCH*/
+.mainTitle {
+    display: flex; /*FlexBox tutorial: https://www.w3schools.com/css/css3_flexbox.asp*/
+    justify-content: center; /*horizontally*/
+    align-items: center; /*vertically*/
+}
+
+.mainSwitch {
+    width: 100%;
+    display: flex; /*FlexBox tutorial: https://www.w3schools.com/css/css3_flexbox.asp*/
+    justify-content: center; /*horizontally*/
+    align-items: center; /*vertically*/
+}
+
+.extensionStateLabel {
+    font-weight: bold;
+    font-size: large;
+    margin-left: 10px;
+}
+
+/*CONTENT SWITCHES*/
+.settingSwitches {
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+}
+
+.settingSwitch {
+    width: 100%;
+}
+
+/*BOTTOM DISCLAIMER*/
+.bottomDisclaimer {
+    display: flex;
+    position: absolute;
+    bottom: 5px;
+    font-style: italic;
+    font-size: xx-small;
+    color: #555555;
+}
+
+/*TOOLTIP ON HOVER*/
+.tooltipOnHover { /*Element that has tooltip on hover*/
+    position: relative;
+    display: inline-block;
+}
+
+.tooltipOnHover .tooltipTextAbove { /*Tooltip text window*/
+    visibility: hidden;
+    width: 400px;
+    background-color: #555;
+    color: #fff;
+    text-align: center;
+    border-radius: 6px;
+    padding: 5px 0;
+    position: absolute;
+    z-index: 1;
+    bottom: 125%;
+    left: 50%;
+    margin-left: -60px;
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.tooltipOnHover .tooltipTextAbove::after { /*Small arrow pointing to the parent element*/
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 10%;
+    margin-left: -5px;
+    border-width: 5px;
+    border-style: solid;
+    border-color: #555 transparent transparent transparent;
+}
+
+.tooltipOnHover:hover .tooltipTextAbove { /*Display tooltip when hovering the parent element.*/
+    visibility: visible;
+    opacity: 1;
+}
+
+.tooltipOnHover .tooltipTextAbove:hover { /*Hide tooltip if hovering over the tooltip itself (to prevent covering of other elements).*/
+    visibility: hidden;
+    opacity: 0;
+}
+
+/* ROUNDED SWITCH https://www.w3schools.com/howto/howto_css_switch.asp */
+/* The switch - the box around the slider */
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 60px;
+    height: 34px;
+}
+
+/* Hide default HTML checkbox */
+.switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+/* The slider */
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    -webkit-transition: .4s;
+    transition: .4s;
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 26px;
+    width: 26px;
+    left: 4px;
+    bottom: 4px;
+    background-color: white;
+    -webkit-transition: .4s;
+    transition: .4s;
+}
+
+input:checked + .slider {
+    background-color: #2196F3;
+}
+
+input:focus + .slider {
+    box-shadow: 0 0 1px #2196F3;
+}
+
+input:checked + .slider:before {
+    -webkit-transform: translateX(26px);
+    -ms-transform: translateX(26px);
+    transform: translateX(26px);
+}
+
+/* Rounded sliders */
+.slider.round {
+    border-radius: 34px;
+}
+
+.slider.round:before {
+    border-radius: 50%;
+}
