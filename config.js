@@ -22,12 +22,12 @@ const CONFIG_KEYS = {
 // Settings that can be enabled by user via extension GUI (game tweaks)
 const SETTINGS = {
     sidebarAddArmyLeaderOption: false,  //add a sidebar option to add clan leader (hero) to the army
-    maxEquipmentButton: false,
+    //maxEquipmentButton: false,
     quickAttackButton: false,
 };
 
 const SETTINGS_KEYS = {
     sidebarAddArmyLeaderOption: 'sidebarAddArmyLeaderOption',
-    maxEquipmentButton: 'maxEquipmentButton',
+    //maxEquipmentButton: 'maxEquipmentButton',
     quickAttackButton: 'quickAttackButton',
 };
