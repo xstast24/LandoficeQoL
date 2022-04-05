@@ -38,7 +38,7 @@ function getElementByXpath(xpath, contextElement = document) {
  *      if enabled, search only for exact text match (not recommended)
  * return: (optional) element containing the given text*/
 function getElementByText(text, contextElement = document, elementType = '*', exactMatch = false) {
-    let query = exactMatch ? `//${elementType}[text()='${text}')]` : `//${elementType}[contains(text(), '${text}')]`;
+    let query = exactMatch ? `//${elementType}[text()='${text}']` : `//${elementType}[contains(text(), '${text}')]`;
     return getElementByXpath(query, contextElement)
 }
 
