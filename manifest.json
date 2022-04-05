@@ -1,0 +1,46 @@
+{
+  "manifest_version": 2,
+  "name": "Landofice QoL",
+  "description": "Provide convenient utils for landofice.com players.",
+  "version": "0.1",
+  "author": "Bota007",
+  "permissions": [
+    "storage",
+    "webRequest",
+    "webRequestBlocking",
+    "http://*.landofice.com/*"
+  ],
+  "icons": {
+      "16": "icon16.png",
+      "48": "icon48.png",
+      "128": "icon128.png"
+    },
+  "browser_action": {
+    "default_popup": "popup/popup.html",
+    "default_title": "Landofice QoL"
+  },
+  "content_scripts": [
+    {
+      "js": [
+        "config.js",
+        "common.js",
+        "game_common.js",
+        "content/content.js"
+      ],
+      "css": [
+        "content/content.css"
+      ],
+      "matches": [
+        "http://*.landofice.com/*"
+      ]
+    }
+  ],
+  "background": {
+    "scripts": [
+      "config.js",
+      "common.js",
+      "background/background.js"
+    ],
+    "persistent": true
+  }
+}
