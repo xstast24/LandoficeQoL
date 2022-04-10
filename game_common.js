@@ -9,3 +9,31 @@
 function sidebar() {
     return document.getElementsByClassName('action-list').item(0);
 }
+
+/**
+ * Get sidebar element with given text.
+ * @param {string} name: text displayed on the option, e.g. 'Obnovit'
+ * @returns {Node & ParentNode} sidebar option <li> element
+ */
+function getSidebarOption(name) {
+    //options are <li> elements that contain <a> anchors (e.g. <li> <a>Option</a> </li>) -> must search text in <a>, but return the <li> parent
+    return getElementByText(name, sidebar(), 'a', true).parentNode;
+}
+
+/**
+ * Create an option element for the main page sidebar.
+ * @param {string} name: text displayed on the option
+ * @param {string} href: (optional) anchor/link to visit/call if the option is clicked. By default void action (do nothing). Pass ''/null = no href attribute
+ * @returns {HTMLLIElement} sidebar option element
+ */
+function createSidebarOption(name, href = 'javascript:void(0);') {
+    //STRUCTURE: sidebar options are <a> anchors wrapped in <li> elements, e.g. <li> <a href=link> Option1 </a> </li>)
+    let optionContent = document.createElement('a');
+    optionContent.textContent = name;
+    if (href) {optionContent.setAttribute('href', href);}
+
+    let optionWrap = document.createElement('li');
+    optionWrap.appendChild(optionContent);
+
+    return optionWrap
+}

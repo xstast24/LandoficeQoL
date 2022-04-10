@@ -24,27 +24,22 @@ function runContentTweaks() {
     }
 }
 
-/**TODO*/
+/**Add option to sidebar on the main page "Add clan leader to army", so user can simply 1-click it (no need to open army, scroll, add, close...) */
 function tweak_sidebarAddArmyLeaderOption() {
     if (window.location.pathname !== '/main.php') {return} //option works only on the main page with sidebar
 
-    let armyLeaderOption = document.createElement('li');
-    let armyLeaderOptionLink = document.createElement('a');
-    //armyLeaderOptionLink.setAttribute('href', 'main.php?obnovit');
-    //void link -> show mouse pointer as on link/anchor https://stackoverflow.com/questions/8260546/make-a-html-link-that-does-nothing-literally-nothing
-    armyLeaderOptionLink.setAttribute('href', 'javascript:void(0);');
-    //real link would cause the page to load the clan army page; so we just send http request in background and do nothing
-    armyLeaderOptionLink.textContent = 'Velitel do boje';
-    armyLeaderOption.appendChild(armyLeaderOptionLink);
-    armyLeaderOption.addEventListener('click', function() {
-        fetch('http://heaven.landofice.com/clanarmy/addCommander').then(result => {console.log(`Added leader to the army`)})
+    let addLeaderURL = 'http://heaven.landofice.com/clanarmy/addCommander'
+
+    //1) Page refresh ("?obnovit") not needed (we could use void link), but it feels unresponsive (player don't know if it worked) -> refresh solves this
+    //2) Putting addLeaderURL into the option would open the clan army page, so we process the request silently in background (event listener below)
+    let addLeaderOption = createSidebarOption('Velitel do armády', 'main.php?obnovit');
+    addLeaderOption.addEventListener('click', function() {
+        fetch(addLeaderURL).then(result => {console.log(`Added clan leader to the army`)})
     });
 
-    //options are wrapped in <li><a>option</a></li> -> need the <li> parent
-    let sidebarClanArmy = getElementByText('Klanová armáda', sidebar(), 'a', true).parentNode;
-
-    // insert the option after Clan Army item
-    sidebar().insertBefore(armyLeaderOption, sidebarClanArmy.nextSibling);
+    // insert the option into sidebar (after Clan Army option)
+    let clanArmyOption = getSidebarOption('Klanová armáda');
+    sidebar().insertBefore(addLeaderOption, clanArmyOption.nextSibling);
 
     console.log(`Tweak "${SETTINGS_KEYS.sidebarAddArmyLeaderOption}": Activated`);
 }
@@ -52,7 +47,7 @@ function tweak_sidebarAddArmyLeaderOption() {
 /**TODO*/
 function tweak_quickAttackButton() {
     if (window.location.pathname !== '/main.php') {return} //option works only on the main page with sidebar
-
+    return //TODO
     let villageAttack = document.createElement('li')
     let villageAttackLink = document.createElement('a');
     //villageAttackLink.setAttribute('href', 'main.php?obnovit');

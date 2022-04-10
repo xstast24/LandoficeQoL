@@ -21,3 +21,5 @@ console.log(element); // logs the expandable <html>…</html>
 console.dir(element); // logs the element’s properties and values
 Object.keys(element); // logs the element’s property names
 
+Anchor: add void link which does nothing, but shows mouse pointer as on regular link/anchor
+anchorElem.setAttribute('href', 'javascript:void(0);'); //https://stackoverflow.com/questions/8260546/make-a-html-link-that-does-nothing-literally-nothing
