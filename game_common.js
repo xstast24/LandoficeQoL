@@ -4,8 +4,8 @@
  * */
 
 
-/**Get sidebar (action list) - the menu on the left side of the page.
+/**Get sidebar (action list) - the menu on the left side of the main page.
  * return: (optional) sidebar elem*/
-function getSideBar() {
-    return document.getElementsByClassName('action_list');
+function sidebar() {
+    return document.getElementsByClassName('action-list').item(0);
 }

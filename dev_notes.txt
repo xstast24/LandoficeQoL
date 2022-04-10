@@ -15,3 +15,9 @@ URL parsing/checking with "windows.location.X" for "http://heaven.landofice.com/
  - href = http://heaven.landofice.com/main.php?obnovit&asd
  - pathname = /main.php
  - search = ?obnovit&asd
+
+Print element/object/list/array with attributes https://stackoverflow.com/a/9633848/7684041
+console.log(element); // logs the expandable <html>…</html>
+console.dir(element); // logs the element’s properties and values
+Object.keys(element); // logs the element’s property names
+
