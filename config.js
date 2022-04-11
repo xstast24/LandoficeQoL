@@ -23,11 +23,13 @@ const CONFIG_KEYS = {
 const SETTINGS = {
     sidebarAddArmyLeaderOption: false,  //add a sidebar option to add clan leader (hero) to the army
     //maxEquipmentButton: false,
-    quickAttackButton: false,
+    quickAttackButton: false, //add option to all events/confrontations to 1-click attack&clear them
+    sidebarCopyArmyOption: false, //button to quickly copy current army into clipboard, so it can be easily pasted into simulator
 };
 
 const SETTINGS_KEYS = {
     sidebarAddArmyLeaderOption: 'sidebarAddArmyLeaderOption',
     //maxEquipmentButton: 'maxEquipmentButton',
     quickAttackButton: 'quickAttackButton',
+    sidebarCopyArmyOption: 'sidebarCopyArmyOption',
 };

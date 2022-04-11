@@ -30,11 +30,12 @@ function tweak_sidebarAddArmyLeaderOption() {
 
     let addLeaderURL = 'http://heaven.landofice.com/clanarmy/addCommander'
 
-    //1) Page refresh ("?obnovit") not needed (we could use void link), but it feels unresponsive (player don't know if it worked) -> refresh solves this
     //2) Putting addLeaderURL into the option would open the clan army page, so we process the request silently in background (event listener below)
-    let addLeaderOption = createSidebarOption('Velitel do armády', 'main.php?obnovit');
-    addLeaderOption.addEventListener('click', function() {
-        fetch(addLeaderURL).then(result => {console.log(`Added clan leader to the army`)})
+    let addLeaderOption = createSidebarOption('Velitel do armády'); //If it feels unresponsive, add 'main.php?obnovit' href to reload main page? Probbaly OK
+    addLeaderOption.addEventListener('click', function(event) {
+        fetch(addLeaderURL).then(
+            success => {event.target.textContent = 'Velitel ✅'},
+            fail => {event.target.textContent = 'Velitel selhal ❌'})
     });
 
     // insert the option into sidebar (after Clan Army option)
@@ -80,4 +81,50 @@ function tweak_quickAttackButton() {
     sidebar().insertBefore(villageAttack, sidebar().firstChild)
     'http://heaven.landofice.com/utok.php?utok=vesnice&'
     console.log(`Tweak "${SETTINGS_KEYS.quickAttackButton}": Activated`);
+}
+
+/**Add option "Copy Army" into sidebar on the main page, so user can simply 1-click copy and easily paste into simulator (saves much time) */
+function tweak_sidebarCopyArmyOption() {
+    if (window.location.pathname !== '/main.php') {return} //option works only on the main page with sidebar
+
+    let clanArmyURL = 'http://heaven.landofice.com/clanarmy';
+
+    let copyArmyOption = createSidebarOption('Zkopírovat armádu');
+    copyArmyOption.addEventListener('click', function (event) {
+        fetch(clanArmyURL) //TODO convert to common method to get resultDocument easily
+        .then(result => result.text())
+        .then(resultHtmlString => {
+            const resultDocument = new DOMParser().parseFromString(resultHtmlString, 'text/html');
+
+            let armyTable = resultDocument.getElementsByTagName('tbody').item(0);
+            //unit name & item are stored in child nodes in <td class="t-l">...</td>; unit count is in the <td> in the following column
+            let unitCells = armyTable.getElementsByClassName('t-l');
+            let clanArmy = ''; //final text with clan army info
+            for (let unit of unitCells) {
+                let unitName = getTextExcludingChildren(unit);
+                //unique units have name in color font tag, so it must be obtained specially
+                if (!unitName) {unitName = unit.getElementsByClassName('unit_unique').item(0).textContent;}
+
+                let unitCount = unit.nextElementSibling.textContent; //count is in the next column (next <td> on the same elem level)
+
+                let unitItem = '';
+                try {
+                    unitItem = unit.getElementsByClassName('predmet').item(0).textContent; //if no item, 'null.textContent' raises error
+                } catch (error) {} //do nothing, unitItem is already pre-set to empty string
+
+                clanArmy += `${unitCount} x ${unitName}`
+                if (unitItem) {clanArmy += ` (${unitItem})`}
+                clanArmy += '\n'
+            }
+
+            copyToClipboard(clanArmy);
+            event.target.textContent = 'Zkopírováno ✅';
+        })
+    })
+
+    // insert the option into sidebar (after Clan Army option)
+    let clanArmyOption = getSidebarOption('Klanová armáda');
+    sidebar().insertBefore(copyArmyOption, clanArmyOption.nextSibling);
+
+    console.log(`Tweak "${SETTINGS_KEYS.sidebarCopyArmyOption}": Activated`);
 }
