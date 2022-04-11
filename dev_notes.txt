@@ -23,3 +23,7 @@ Object.keys(element); // logs the element’s property names
 
 Anchor: add void link which does nothing, but shows mouse pointer as on regular link/anchor
 anchorElem.setAttribute('href', 'javascript:void(0);'); //https://stackoverflow.com/questions/8260546/make-a-html-link-that-does-nothing-literally-nothing
+
+Iterate over nodeList/HTMLCollection by for&of (not by for&in): "for (let elem of elems) {}" https://stackoverflow.com/questions/22754315/for-loop-for-htmlcollection-elements
+
+Handy UTF-8 & Unicode symbols ☑ ❌ ✓ ◌ 📶 🔂 ⟳ 🔄'
