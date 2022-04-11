@@ -67,3 +67,48 @@ function sleep(ms) {
 function exitScriptExecution() {
     throw new Error('NOT ERROR: Just intentionally stopping script execution.');
 }
+
+/** Show alert to user to copy given text manually. Text is pre-selected. SUGGESTION: use copyToClipboard() instead of this.*/
+function copyToClipboardManual(text) {
+    prompt("Copy to clipboard: Ctrl+C & Enter", text);
+}
+
+/** Copy given text into the clipboard automatically, silently in the background. Return false if failed. SUGGESTION: use copyToClipboard() instead of this.
+ * WARNING: Must be called by a user action (e.g. in click event handler). Works only in secure content of HTTPS or localhost. Undefined for HTTP!*/
+function copyToClipboardAuto(text) {
+    if (navigator.clipboard) {
+        //try native cross-platform copy; doc https://developer.mozilla.org/en-US/docs/Web/API/Navigator/clipboard
+        navigator.clipboard.writeText(text).then(
+            success => {return true},
+            fail => {console.warn("Automatic copy to clipboard failed:", fail); return false})
+    } else if (document.queryCommandSupported && document.queryCommandSupported("copy")) {
+        //create element with given text at the bottom of the page (shouldn't be visible by user), select its content and use a copy command
+        //source https://stackoverflow.com/a/33928558/7684041, copy cmd doc https://developer.mozilla.org/en-US/docs/Web/API/Document/execCommand
+        let textArea = document.createElement("textarea");
+        textArea.textContent = text;
+        textArea.style.position = "fixed";  // Prevent scrolling to bottom of page in Microsoft Edge
+        document.body.appendChild(textArea);
+        textArea.select();
+        try {
+            return document.execCommand("copy");
+        } catch (ex) { // Security exception may be thrown by some browsers.
+            console.warn("Automatic copy to clipboard failed:", ex);
+            return false
+        } finally {
+            document.body.removeChild(textArea);
+        }
+    } else {
+        console.warn("Automatic copy to clipboard failed - API unavailable. Make sure to call copy in user action (click event handler) and HTTPS");
+        return false
+    }
+}
+
+/** Copy the given string to the clipboard automatically, if not possible, show manual prompt.
+ * Try automatic copy (if possible) - must be called within a user action (e.g. click event handler) and in HTTPS or localhost!
+ * If automatic copy failed, display a prompt to user, so they can easily copy manually (Ctrl+C)*/
+function copyToClipboard(text) {
+    let copyResult = copyToClipboardAuto(text);
+    if (copyResult === false) {
+        copyToClipboardManual(text);
+    }
+}
