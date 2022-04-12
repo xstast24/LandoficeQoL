@@ -103,8 +103,10 @@ function tweak_sidebarCopyArmyOption() {
             for (let unit of unitCells) {
                 let unitName = getTextExcludingChildren(unit);
                 //unique units have name in color font tag, so it must be obtained specially
-                //{unitName = unit.getElementsByClassName('unit_unique').item(0).textContent;} //works only for leader (nested <a> link to skill tree)
                 if (!unitName) {unitName = unit.getElementsByTagName('font').item(0).textContent;} //works for all specials
+
+                //WORKAROUND: simulator has bug - it doesn't know Dralgar units called *kopiník*, it needs to input them with extra J like *kopijník*
+                if (unitName.includes('kopiník')) {unitName = unitName.replace('kopiník', 'kopijník')}
 
                 let unitCount = unit.nextElementSibling.textContent; //count is in the next column (next <td> on the same elem level)
 
