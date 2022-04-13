@@ -45,55 +45,48 @@ function tweak_sidebarAddArmyLeaderOption() {
     console.log(`Tweak "${SETTINGS_KEYS.sidebarAddArmyLeaderOption}": Activated`);
 }
 
-/**TODO*/
+/**Add quick attack option to all attack events on main page -> 1 click attacks the event and plays the next turn immediately after that*/
 function tweak_quickAttackButton() {
     if (window.location.pathname !== '/main.php') {return} //option works only on the main page with sidebar
-    for (let event of getPossibleAttackEvents()) {
+    for (let attackEventLink of getPossibleAttackEvents()) {
         let quickAttackButton = document.createElement('button');
-        quickAttackButton.textContent = 'Vypleskat';
         quickAttackButton.setAttribute('type', 'button');
+        quickAttackButton.textContent = '⚔ ♻ ⚔';
+        quickAttackButton.style.fontSize = 'large';
         quickAttackButton.style.cursor = 'pointer'; //change cursor same as on events
-        quickAttackButton.style.marginLeft = '10px'; //space between event & button (horizontal)
-        quickAttackButton.style.marginTop = '7px'; //space between button & button (vertical, for multiple events)
-        quickAttackButton.style.padding = '3px'; //button area around text
+        quickAttackButton.style.marginRight = '10px'; //space between event & button (horizontal)
+        quickAttackButton.style.marginTop = '7px'; //space between button & other button (vertical, for multiple events)
+        quickAttackButton.style.padding = '2px'; //button area around text
         quickAttackButton.style.backgroundColor = '#15497b';
         quickAttackButton.style.color = '#c0d6ee';
         quickAttackButton.style.border = '2px solid #0a192d';
         quickAttackButton.style.borderRadius = '5px';
 
-        event.insertAdjacentElement('afterend', quickAttackButton) //put button after the event link
+        attackEventLink.insertAdjacentElement('beforebegin', quickAttackButton) //put button after the event link
 
         quickAttackButton.addEventListener('click', function (event) {
-            console.log('UTOK clicked -> submitting')
-            let url = event.href; //example attack URL 'http://heaven.landofice.com/utok.php?utok=vesnice&'
-            fetch(url).then(result => result.text()).then(resultHtmlString => {
-                console.log(`UTOK submitted, answer delivered -> parsing html to DOM`);
-                const resultDocument = new DOMParser().parseFromString(resultHtmlString, 'text/html');
-                console.log('UTOK parsed DOM');
-                //TODO add error handling if e.g. clicked 2x same link and it is already cleared -> no attack form found
+            let url = attackEventLink.href; //example attack URL 'http://heaven.landofice.com/utok.php?utok=vesnice&'
+            fetch(url)
+                .then(result => {
+                    if (result.ok) {return result.text()}
+                    else { // TODO add handling of http://heaven.landofice.com/nogame/error.php?err=attack-none "bitva nepristupna" (pri opakovanem kliknuti na utok)
+                        quickAttackButton.textContent = '❌'; console.error('Quick attack failed on fetching attack table (== clicking the event)!');
+                        return Promise.reject(result)} //--> next .then won't happen
+                })
+                .then(resultHtmlString => {
+                    const resultDocument = new DOMParser().parseFromString(resultHtmlString, 'text/html');
 
-                //attackForm is sheet where unit numbers are filled by player, by default all units
-                let attackForm = resultDocument.getElementsByClassName('utok-formular').item(0);
-                console.log(`UTOK got attack form ${attackForm}, info below:`);
-
-                console.log(`UTOK submitting form...`);
-                fetch(url, {
-                    method: 'post',
-                    body: new FormData(attackForm)
-                }).then(r => {console.log('UTOK form sent, DONE, result:'); console.log(r)})
-
-                console.log(`UTOK submit complete, should be done`);
-                quickAttackButton.textContent = '✅';
-
-                //NEXT TURN FIXME next turn not working - why? TODO move to function afterwards
-                // let nextTurn = getSidebarOption('Průzkum pustiny (1 tah)'); //try to explore wasteland (pustina) if available
-                // if (!nextTurn) {nextTurn = getSidebarOption('Průzkum okolí (1 tah)');} //wasteland unavailable, explore surroundings (okolí) instead
-                // if (nextTurn) {
-                //     nextTurn.click()
-                // } else {
-                //     console.error('Next turn button not found!')
-                // }
-            })
+                    //submit the attack form with all units (attackForm is the table/sheet where unit numbers are filled by player)
+                    let attackForm = resultDocument.getElementsByClassName('utok-formular').item(0);
+                    fetch(url, {method: 'post', body: new FormData(attackForm)})
+                        .then( result => {
+                            if (result.ok) {quickAttackButton.textContent = '✅';}
+                            else {
+                                quickAttackButton.textContent = '❌'; console.error('Quick attack failed (submitting attack form)!');
+                                return Promise.reject(result)} //--> next .then won't happen
+                        })
+                        .then(result => nextTurn()) //play next turn after clearing the attack event
+                })
         })
     }
     console.log(`Tweak "${SETTINGS_KEYS.quickAttackButton}": Activated`);

@@ -26,4 +26,7 @@ anchorElem.setAttribute('href', 'javascript:void(0);'); //https://stackoverflow.
 
 Iterate over nodeList/HTMLCollection by for&of (not by for&in): "for (let elem of elems) {}" https://stackoverflow.com/questions/22754315/for-loop-for-htmlcollection-elements
 
-Handy UTF-8 & Unicode symbols ✅ ☑ ❌ ✓ ◌ 📶 🔂 ⟳ 🔄'
+Handy UTF-8 & Unicode symbols ✅ ☑ ❌ ✓ ◌ 📶 🔂 ⟳ 🔄 ⚔ 🍴 🍽 🔪 🗡 ♲ ♳ ♴ ♻ ♽ ♼ 👊 🤜 🚩 🍔
+
+How to not execute then after failed promise? Handle success as needed, but in the error case re-raise the promise rejection:
+error => {console.error('Quick attack action failed: ', error); return Promise.reject(error)} //keep the promise rejected -> the following "then" won't execute

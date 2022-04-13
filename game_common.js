@@ -40,6 +40,26 @@ function createSidebarOption(name, href = 'javascript:void(0);') {
     return optionWrap
 }
 
+/**Click sidebar option by name. Throw exception if failed (e.g. option not found).*/
+function clickSidebarOption(name) {
+    //sidebar option is <li><a href-url>Name</a></li> and only the <a> anchor with link is clickable
+    getSidebarOption(name).firstChild.click();
+}
+
+/**Click next turn in sidebar. Explore wasteland (pustina) if available, otherwise explore surroundings (okoli).*/
+function nextTurn() {
+    try {
+        clickSidebarOption('Průzkum pustiny (1 tah)'); //try to explore wasteland (pustina) if available
+    } catch {
+        //wasteland unavailable, explore surroundings (okolí) instead
+        try {
+            clickSidebarOption('Průzkum okolí (1 tah)');
+        } catch (e) {
+            console.error('Next turn button not found! Exception: ', e)
+        }
+    }
+}
+
 /**Get all possible attack events offered on the main page each turn (elements like <a href="utok.php?utok=name">Name</a>) */
 function getPossibleAttackEvents() {
     let attacksContainer = document.getElementsByClassName('odehraj odehraj-hlavni-utoky').item(0);

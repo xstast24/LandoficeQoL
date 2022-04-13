@@ -2,7 +2,7 @@
   "manifest_version": 2,
   "name": "Landofice QoL",
   "description": "Provide convenient utils for landofice.com players.",
-  "version": "0.3",
+  "version": "0.4",
   "author": "Bota007",
   "permissions": [
     "storage",
