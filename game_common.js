@@ -17,7 +17,9 @@ function sidebar() {
  */
 function getSidebarOption(name) {
     //options are <li> elements that contain <a> anchors (e.g. <li> <a>Option</a> </li>) -> must search text in <a>, but return the <li> parent
-    return getElementByText(name, sidebar(), 'a', true).parentNode;
+    let option = getElementByText(name, sidebar(), 'a', true);
+    if (!option) {console.error(`Sidebar option "${name}" not found!`); return null}
+    return option.parentNode
 }
 
 /**
@@ -36,4 +38,10 @@ function createSidebarOption(name, href = 'javascript:void(0);') {
     optionWrap.appendChild(optionContent);
 
     return optionWrap
+}
+
+/**Get all possible attack events offered on the main page each turn (elements like <a href="utok.php?utok=name">Name</a>) */
+function getPossibleAttackEvents() {
+    let attacksContainer = document.getElementsByClassName('odehraj odehraj-hlavni-utoky').item(0);
+    return attacksContainer.getElementsByTagName('a')
 }

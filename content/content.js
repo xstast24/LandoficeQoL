@@ -48,38 +48,54 @@ function tweak_sidebarAddArmyLeaderOption() {
 /**TODO*/
 function tweak_quickAttackButton() {
     if (window.location.pathname !== '/main.php') {return} //option works only on the main page with sidebar
-    return //TODO
-    let villageAttack = document.createElement('li')
-    let villageAttackLink = document.createElement('a');
-    //villageAttackLink.setAttribute('href', 'main.php?obnovit');
-    villageAttackLink.textContent = 'TEST utok'
-    villageAttack.appendChild(villageAttackLink)
-    villageAttack.addEventListener('click', function () {
-        console.log('UTOK clicked -> submitting')
-        //let url = 'http://heaven.landofice.com/utok.php?utok=vesnice&'; //attack URL
-        let url = 'http://heaven.landofice.com/utok.php?utok=barbari&'; //attack URL
-        fetch(url)
-            .then(result => result.text()) //TODO add response success check?
-            .then(resultHtmlString => {
-            console.log(`UTOK submitted, answer delivered -> parsing html to DOM`);
-            const resultDocument = new DOMParser().parseFromString(resultHtmlString, 'text/html');
-            console.log('UTOK parsed DOM');
-            //TODO add error handling if e.g. clicked 2x same link and it is already cleared -> no attack form found
-            //attackForm = sheet where unit numbers are filled by player, by default all units
-            let attackForm = resultDocument.getElementsByClassName('utok-formular').item(0);
-            console.log(`UTOK got attack form ${attackForm}, info below:`);
-            console.log(`UTOK submitting form...`);
-            fetch(url, {
-                method: 'post',
-                body: new FormData(attackForm)
-            }).then(r => {console.log('UTOK form sent, DONE, result:'); console.log(r)})
-            //console.log('UTOK WAITING a bit, then doing second request - is it seen in network, or submit doesnt work at all?')
-            //sleep(200);
-            console.log(`UTOK submit complete, should be done`);
+    for (let event of getPossibleAttackEvents()) {
+        let quickAttackButton = document.createElement('button');
+        quickAttackButton.textContent = 'Vypleskat';
+        quickAttackButton.setAttribute('type', 'button');
+        quickAttackButton.style.cursor = 'pointer'; //change cursor same as on events
+        quickAttackButton.style.marginLeft = '10px'; //space between event & button (horizontal)
+        quickAttackButton.style.marginTop = '7px'; //space between button & button (vertical, for multiple events)
+        quickAttackButton.style.padding = '3px'; //button area around text
+        quickAttackButton.style.backgroundColor = '#15497b';
+        quickAttackButton.style.color = '#c0d6ee';
+        quickAttackButton.style.border = '2px solid #0a192d';
+        quickAttackButton.style.borderRadius = '5px';
+
+        event.insertAdjacentElement('afterend', quickAttackButton) //put button after the event link
+
+        quickAttackButton.addEventListener('click', function (event) {
+            console.log('UTOK clicked -> submitting')
+            let url = event.href; //example attack URL 'http://heaven.landofice.com/utok.php?utok=vesnice&'
+            fetch(url).then(result => result.text()).then(resultHtmlString => {
+                console.log(`UTOK submitted, answer delivered -> parsing html to DOM`);
+                const resultDocument = new DOMParser().parseFromString(resultHtmlString, 'text/html');
+                console.log('UTOK parsed DOM');
+                //TODO add error handling if e.g. clicked 2x same link and it is already cleared -> no attack form found
+
+                //attackForm is sheet where unit numbers are filled by player, by default all units
+                let attackForm = resultDocument.getElementsByClassName('utok-formular').item(0);
+                console.log(`UTOK got attack form ${attackForm}, info below:`);
+
+                console.log(`UTOK submitting form...`);
+                fetch(url, {
+                    method: 'post',
+                    body: new FormData(attackForm)
+                }).then(r => {console.log('UTOK form sent, DONE, result:'); console.log(r)})
+
+                console.log(`UTOK submit complete, should be done`);
+                quickAttackButton.textContent = '✅';
+
+                //NEXT TURN FIXME next turn not working - why? TODO move to function afterwards
+                // let nextTurn = getSidebarOption('Průzkum pustiny (1 tah)'); //try to explore wasteland (pustina) if available
+                // if (!nextTurn) {nextTurn = getSidebarOption('Průzkum okolí (1 tah)');} //wasteland unavailable, explore surroundings (okolí) instead
+                // if (nextTurn) {
+                //     nextTurn.click()
+                // } else {
+                //     console.error('Next turn button not found!')
+                // }
+            })
         })
-    })
-    sidebar().insertBefore(villageAttack, sidebar().firstChild)
-    'http://heaven.landofice.com/utok.php?utok=vesnice&'
+    }
     console.log(`Tweak "${SETTINGS_KEYS.quickAttackButton}": Activated`);
 }
 
