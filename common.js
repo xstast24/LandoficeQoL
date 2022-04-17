@@ -49,7 +49,7 @@ function getElementByText(text, contextElement = document, elementType = '*', ex
  * elementType: final element must be of this type, e.g. div/tr/a/td, or asterisk to for any type
  * return: (optional) matching element*/
 function getElementByAttributeValue(attribute, value, contextElement = document, elementType = '*') {
-    let query = `//${elementType}[@${attribute}="${value}"]`;
+    let query = `.//${elementType}[@${attribute}="${value}"]`;
     return getElementByXpath(query, contextElement)
 }
 
