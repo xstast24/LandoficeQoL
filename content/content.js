@@ -144,6 +144,7 @@ function tweak_sidebarCopyArmyOption() {
 /**Vulkan equipment: make sure there is at least 5 equipment for fire mages every round, so it recruits fire mage(s) -> 1 arch mage of fire comes as bonus.*/
 function tweak_vulkanAutoBuyFireMage() {
     if (window.location.pathname !== '/main.php') {return} //option works only on the main page with sidebar
+
     let firemageBuilding = getBuildingByName('Ohnivá Sekta');
     if (!firemageBuilding) {firemageBuilding = getBuildingByName('Chrám Ohnivé Sekty')} //building for fire mages not found, check for the upgraded one
     if (!firemageBuilding) {return} //2nd bulding not found at all
@@ -167,4 +168,15 @@ function tweak_vulkanAutoBuyFireMage() {
     })
 
     console.log(`Tweak "${SETTINGS_KEYS.vulkanAutoBuyFireMage}": Activated`);
+}
+
+/**Alert player if soothsayer from Francox sect arrives with a riddle, so player doesn't miss it*/
+function tweak_alertFrancoxSect() {
+    if (window.location.pathname !== '/main.php') {return} //option works only on the main page with sidebar
+
+    let turnInfoSection = document.getElementsByClassName('odehraj odehraj-odtah').item(0);
+    if (getElementByText('Vyslechnout jej', turnInfoSection, 'a', false)) { //don't use exact match (whitespaces)
+        alert('Přišel k nám věštec francoxovy sekty!\nNezapomeň jej vyslechnout.\nŘešení známých hádanek např. zde:\nloi.dobrodruh.net/rubriky/land-of-ice/hadanky');
+    }
+    console.log(`Tweak "${SETTINGS_KEYS.alertFrancoxSect}": Activated`);
 }
