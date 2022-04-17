@@ -140,3 +140,31 @@ function tweak_sidebarCopyArmyOption() {
 
     console.log(`Tweak "${SETTINGS_KEYS.sidebarCopyArmyOption}": Activated`);
 }
+
+/**Vulkan equipment: make sure there is at least 5 equipment for fire mages every round, so it recruits fire mage(s) -> 1 arch mage of fire comes as bonus.*/
+function tweak_vulkanAutoBuyFireMage() {
+    if (window.location.pathname !== '/main.php') {return} //option works only on the main page with sidebar
+    let firemageBuilding = getBuildingByName('Ohnivá Sekta');
+    if (!firemageBuilding) {firemageBuilding = getBuildingByName('Chrám Ohnivé Sekty')} //building for fire mages not found, check for the upgraded one
+    if (!firemageBuilding) {return} //2nd bulding not found at all
+    //Note: Decided to not check lava golems building - it is case of first few moves, not worth. And it would need many checks for upgraded building names
+    //if (!getBuilding('Ohnivé Jezero')) {return} //vulkan building for fire golems not found
+
+    //When player clicked next turn, check if there is enough equipment, buy equipment if needed
+    getSidebarOption('Průzkum pustiny (1 tah)').firstChild.addEventListener('click', function (event) {
+        let equipment = getElementByText('Celkem vybavení:', firemageBuilding, 'p', false);
+        let equipmentCount = parseInt(equipment.textContent.replace('Celkem vybavení: ', ''));
+        if (equipmentCount < 5) { //5 equipment needed for 1 fire mage
+            //NOTE: 'click' listener is blocking (happens before the anchor's href), but 'fetch' is asynchronous (non blocking) -> need to stop the next turn
+            event.preventDefault(); //don't load the next turn just yet, wait for the asynchronous equipment purchase
+            //Buy equipment, then play next turn
+            fetch('http://heaven.landofice.com/main.php?budovaaction=1100&bu_kolik=5')
+                .then(result => { //don't block player action -> play next turn regardless of result (worse scenario is "no recruit", which is fine)
+                    window.open('http://heaven.landofice.com/main.php?odehraj&pustina&', '_self')
+                })
+        }
+        // else - equipment OK, no need to do anything
+    })
+
+    console.log(`Tweak "${SETTINGS_KEYS.vulkanAutoBuyFireMage}": Activated`);
+}

@@ -65,3 +65,9 @@ function getPossibleAttackEvents() {
     let attacksContainer = document.getElementsByClassName('odehraj odehraj-hlavni-utoky').item(0);
     return attacksContainer.getElementsByTagName('a')
 }
+
+/**Get building with given name (on main page). Building is <div>, inside is name in <h4> and sub-div with all data, like <div class=build>...</div> */
+function getBuildingByName(name) {
+    let buildings = document.getElementsByClassName('odehraj odehraj-budovy-akce').item(0);
+    return getElementByText(name, buildings, 'h4', true).parentNode
+}
