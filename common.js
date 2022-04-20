@@ -112,3 +112,13 @@ function copyToClipboard(text) {
         copyToClipboardManual(text);
     }
 }
+
+/**Return True if given object is empty {}, False if not empty.*/
+function isEmpty(object) {
+    return Object.keys(object).length === 0;
+}
+
+/**Remove all occurrences of the given value and return the filtered array. NOTE: assign the returned array to your array (doesn't work in-situ).*/
+function removeValueFromArray(value, array) {
+    return array.filter(item => item !== value)
+}
