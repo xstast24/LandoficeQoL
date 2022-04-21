@@ -125,7 +125,7 @@ function removeValueFromArray(value, array) {
 
 /**Clear all scheduled timeout actions. Should probably clear also scheduled timeout intervals. https://stackoverflow.com/a/8345814/7684041*/
 function clearAllTimeouts() {
-    const highestTimeoutId = setTimeout(''); // Set a fake timeout to get the highest timeout id
+    const highestTimeoutId = setTimeout(function () {}, 0); // Set a fake timeout to get the highest timeout id
     for (let i = 0; i < highestTimeoutId; i++) {
         clearTimeout(i);
     }
