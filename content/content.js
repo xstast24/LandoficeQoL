@@ -166,9 +166,7 @@ function tweak_sidebarCopyArmyOption() {
 
 /**Vulkan equipment: make sure there is at least 5 equipment for fire mages every round, so it recruits fire mage(s) -> 1 arch mage of fire comes as bonus.*/
 function tweak_vulkanAutoBuyFireMage() {
-    if (window.location.pathname !== '/main.php') {
-        return
-    } //option works only on the main page with sidebar
+    if (window.location.pathname !== '/main.php') {return} //option works only on the main page with sidebar
 
     let firemageBuilding = getBuildingByName('Ohnivá Sekta');
     if (!firemageBuilding) {
@@ -201,9 +199,7 @@ function tweak_vulkanAutoBuyFireMage() {
 
 /**Alert player if soothsayer from Francox sect arrives with a riddle, so player doesn't miss it*/
 function tweak_alertFrancoxSect() {
-    if (window.location.pathname !== '/main.php') {
-        return
-    } //option works only on the main page with sidebar
+    if (window.location.pathname !== '/main.php') {return} //option works only on the main page with sidebar
 
     let turnInfoSection = document.getElementsByClassName('odehraj odehraj-odtah').item(0);
     if (getElementByText('Vyslechnout jej', turnInfoSection, 'a', false)) { //don't use exact match (whitespaces)
@@ -214,9 +210,10 @@ function tweak_alertFrancoxSect() {
 
 /**TODO how it works, disabled elems, buttons, refresh...*/
 function tweak_plunderWatchdog() {
-    if (window.location.pathname !== '/plunder') {
-        return
-    } //works only on the plunder page
+    if (window.location.pathname !== '/plunder') {return} //works only on the plunder page
+
+    const SECOND = 1000; //ms
+    const MINUTE = 60000; //ms
 
     //CONTROL SECTION - create tweak control section above the plundering (right below the main header)
     let mainHeader = getElementByText('Plenění', document, 'h3', true);
@@ -227,20 +224,24 @@ function tweak_plunderWatchdog() {
     controlSection.appendChild(controlSectionTitle);
 
     //TODO better comment - plunder settings, why disabled
-    let targets = createWatchdogTargetList(controlSection);
-    controlSection.appendChild(document.createElement('br'))
-
     let monitoring = createWatchdogOptionCheckbox(controlSection, 'Monitoring', 'qol-plunder-checkbox', 'monitoringToggle');
     let alert = createWatchdogOptionCheckbox(controlSection, 'Alert', 'qol-plunder-checkbox', 'alertToggle');
     let autoAttack = createWatchdogOptionCheckbox(controlSection, 'AutoAttack', 'qol-plunder-checkbox', 'autoAttackToggle');
     controlSection.appendChild(document.createElement('br'))
 
+    let targets = createWatchdogTargetList(controlSection);
+    controlSection.appendChild(document.createElement('br'))
+
     let mainSwitch = createWatchdogMainSwitch(controlSection);
+    let updateStatusArea = createUpdateStatusArea(controlSection);
     controlSection.appendChild(document.createElement('br'))
 
     createButtonsToAddOrRemoveTargets();
 
     let options = [mainSwitch, targets, monitoring, alert, autoAttack];
+    let nextUpdateTimeout = SECOND; //first update watchdog after 1s to quickly update basic time info
+    let plunderPlaces = getAllPlunderPlaces(document);
+
     loadSettings(options) //load states of the plunder settings
         .then(result => {
             monitoring.checkbox.checked = monitoring.settingsValue;
@@ -255,24 +256,114 @@ function tweak_plunderWatchdog() {
             for (let addButton of document.getElementsByClassName('qol-plunder-add-target')) {addButton.disabled = false}
             for (let rmButton of document.getElementsByClassName('qol-plunder-remove-target')) {rmButton.disabled = false}
 
+            //TODO this happens after page is opened
+            if (mainSwitch.settingsValue === true) {
+                setTimeout(update, nextUpdateTimeout)
+            } //else - watchdog is off -> do nothing
+
+            //TODO this happens if main switch button is clicked
             mainSwitch.button.addEventListener('click', function () {
                 mainSwitch.settingsValue = !mainSwitch.settingsValue;
                 saveOptionState(mainSwitch);
                 mainSwitch.setStatus(mainSwitch.settingsValue);
                 if (mainSwitch.settingsValue === true) {
-                    // TODO set timers...
-                } else {
-                    // TODO clear timers
-                }
+                    setTimeout(update, nextUpdateTimeout)
+                } else {clearAllTimeouts()}
             })
         })
-    
+
+    function update () {
+        //TODO targets by ID
+        //TODO places attribute statusInfo, expectedTime
+        //TODO common var with lastUpdate time, timeoutInterval var which will be calculated in some func and set later in update
+        //TODO set loading animation and reset stautus after end
+        clearAllTimeouts() //TODO rm later, now is to not spam LoI by debugging stuff
+
+        updateStatusArea.setStatusLoading()
+        fetch('http://heaven.landofice.com/plunder')
+            .then(result => {
+                    if (result.ok) {
+                        console.log('Update: result ok')
+                        return result.text()
+                    } else {
+                        updateStatusArea.setStatusFail()
+                        console.warn('Update: result not ok:', result)
+                        nextUpdateTimeout = MINUTE;
+                        //TODO server error - try later (MINUTE); logout - solve logout and retry immediately (SECOND), or stop updates completely
+                        return Promise.reject(result)
+                    }
+                },
+                fail => {
+                    console.error('Update: result promise rejected: ', fail)
+                    updateStatusArea.setStatusFail()
+                    nextUpdateTimeout = SECOND;
+                    // TODO scheduleNextUpdate()
+                }
+            )
+            .then(resultHtmlString => {
+                console.log('Update: Second then - result html string arrived');
+                const resultDoc = new DOMParser().parseFromString(resultHtmlString, 'text/html');
+                let newPlaces = getAllPlunderPlaces(resultDoc);
+                console.log('Update: new places:', newPlaces)
+                updatePlacesWithNewInfo(plunderPlaces, newPlaces);
+
+                nextUpdateTimeout = MINUTE; //TODO logic about correct timeout
+                scheduleNextUpdate();
+
+                updateStatusArea.setStatusSuccess()
+
+                clearAllTimeouts()// TODO rm, just for testing purposes to not spam loi backends
+            })
+            .catch(error => {
+                console.log('Update: catch error: ', error)
+                updateStatusArea.setStatusFail()
+                clearAllTimeouts()
+                //TODO reset state icon, restart timeouts
+            })
+    }
+
+    function scheduleNextUpdate() {clearAllTimeouts(); setTimeout(update, nextUpdateTimeout)}
+
+    function updatePlacesWithNewInfo(oldPlaces, newPlaces) {
+        //replace current place info (status & attack) with the new place info (to reflect changes in UI)
+        for (let i = 0; i < oldPlaces.length ; i++) {
+            let oldPlace = oldPlaces[i]; let newPlace = newPlaces[i];
+            console.log('Updating place with new info: ', i, oldPlace, newPlace);
+            if (newPlace.statusElem) {oldPlace.replaceStatusElem(newPlace.statusElem)}
+            if (newPlace.attackElem) {oldPlace.replaceAttackElem(newPlace.attackElem)}
+        }
+    }
 
     console.log(`Tweak "${SETTINGS_KEYS.plunderWatchdog}": Activated`);
     //TODO by default DISABLE all plunder settings, until main switch state is loaded - it will be enabled in there, so everything is loaded correctly
     // TODO this is to ensure all settings are loaded
     // TODO timers check the real time, cos e.g. PC goes to sleep it is inaccurate https://stackoverflow.com/a/41507793/7684041
+    //TODO move outside functions to this scope, no need to pass params (still should anyway), can customise them maybe better though
 
+    function getAllPlunderPlaces(doc) {
+        let plunderPlaces = []
+        console.log('Get plunder places: doc:', doc)
+        for (let placeContainer of doc.getElementsByClassName('pleneni-table f-left t-c')) {
+            console.log('Get plunder places: place container', placeContainer)
+            let p = {
+                name: placeContainer.getElementsByTagName('h4').item(0).textContent,
+                containerElem: placeContainer,
+                bodyContainerElem: placeContainer.getElementsByClassName('zmerchspodek').item(0), //div with all info (e.g. status), except the name
+                attackElem: placeContainer.getElementsByTagName('a').item(0), //if attack on cooldown -> null
+                statusElem: placeContainer.getElementsByTagName('i').item(1) //if attack ready -> no status -> null
+            }
+            p.replaceStatusElem = function(newStatusElem) {p.bodyContainerElem.replaceChild(newStatusElem, p.statusElem); p.statusElem = newStatusElem};
+            p.replaceAttackElem = function(newAttackElem) {p.bodyContainerElem.replaceChild(newAttackElem, p.attackElem); p.attackElem = newAttackElem};
+            plunderPlaces.push(p);
+            console.log('Get plunder places: p result', placeContainer)
+        }
+        return plunderPlaces
+    }
+
+    const plunderStates = {
+        armyNotReady: 'Na takovýto útok potřebujeme přípravu',
+
+    }
 
     function createButtonsToAddOrRemoveTargets() {
         for (let place of getAllPlunderPlaces(document)) {
@@ -322,7 +413,7 @@ function saveOptionState(option) {
 
 function createWatchdogMainSwitch(parent) {
     let label = document.createElement('label')
-    label.textContent = 'Status:'
+    label.textContent = 'Watchdog status:'
     label.setAttribute('class', 'qol-plunder-main-switch')
 
     let status = document.createElement('span')
@@ -351,12 +442,41 @@ function createWatchdogMainSwitch(parent) {
             mainSwitch.statusElem.textContent = '🟢';
             mainSwitch.button.textContent = 'STOP';
         } else {
-            mainSwitch.statusElem.textContent = '⏾';
+            mainSwitch.statusElem.textContent = '⬤';
             mainSwitch.button.textContent = 'START';
         }
     }
 
     return mainSwitch
+}
+
+function createUpdateStatusArea(parent) {
+    let statusLabel = document.createElement('label');
+    statusLabel.textContent = 'Last update status:'
+    statusLabel.setAttribute('class', 'qol-plunder-update-status')
+    parent.appendChild(statusLabel);
+
+    let status = document.createElement('span')
+    status.setAttribute('class', 'qol-plunder-update-status')
+    status.textContent = '⏾'
+    //TODO fancy loading gif? let status = document.createElement('img'); status.setAttribute('src', chrome.runtime.getURL('data/loading_circle32.gif'))
+    parent.appendChild(status);
+
+    // let timeLabel = document.createElement('label');
+    // timeLabel.textContent = 'Last update time:'
+    // timeLabel.setAttribute('class', 'qol-plunder-update-status')
+    // parent.appendChild(timeLabel);
+
+    let time = document.createElement('span')
+    time.setAttribute('class', 'qol-plunder-update-status')
+    time.textContent = new Date().toLocaleTimeString();
+    parent.appendChild(time);
+
+    let updateStatusArea = {label: statusLabel, status: status, time: time}
+    updateStatusArea.setStatusSuccess = function () {updateStatusArea.status.textContent = '✅'; time.textContent = new Date().toLocaleTimeString()};
+    updateStatusArea.setStatusFail = function () {updateStatusArea.status.textContent = '❌'; time.textContent = new Date().toLocaleTimeString()};
+    updateStatusArea.setStatusLoading = function () {updateStatusArea.status.textContent = '⏳'; time.textContent = new Date().toLocaleTimeString()};
+    return updateStatusArea
 }
 
 function createWatchdogTargetList(parent) {
@@ -416,21 +536,4 @@ function createWatchdogTargetList(parent) {
         })
 
         return toggle
-    }
-
-    function getAllPlunderPlaces(doc) {
-        let plunderPlaces = []
-        for (let placeContainer of doc.getElementsByClassName('pleneni-table f-left t-c')) {
-            let p = {
-                name: placeContainer.getElementsByTagName('h4').item(0).textContent,
-                containerElem: placeContainer,
-                attackElem: placeContainer.getElementsByTagName('a').item(0), //if attack on cooldown -> null
-                statusElem: placeContainer.getElementsByTagName('i').item(1) //if attack ready -> no status -> null
-            }
-            plunderPlaces.push(p);
-        }
-
-        console.log(plunderPlaces) //TODO rm logs
-        console.log(plunderPlaces[0])
-        return plunderPlaces
     }

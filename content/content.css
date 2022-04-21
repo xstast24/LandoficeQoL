@@ -1,27 +1,30 @@
 /*PLUNDER WATCHDOG control section style. Btw CSS selector types (class, id, state...) https://www.w3schools.com/css/css_selectors.asp*/
 label.qol-plunder-target-list {
     margin: 5px;
-    margin-bottom: 15px;
+    margin-bottom: 20px;
 }
 span.qol-plunder-target-list {
     margin: 5px;
-    margin-bottom: 15px;
+    margin-bottom: 20px;
     padding: 2px;
     border: 1px solid #bab595;
 }
 
 label.qol-plunder-checkbox {
     margin: 5px;
+    margin-bottom: 20px;
 }
 input.qol-plunder-checkbox {
     margin: 5px;
     margin-right: 10px;
+    margin-bottom: 20px;
 }
 
 label.qol-plunder-main-switch {
     /*display: block; /*show on separate line*/
     font-size: medium;
     margin: 5px;
+    margin-bottom: 20px;
 }
 span.qol-plunder-main-switch {
     font-size: medium;
@@ -32,7 +35,13 @@ button.qol-plunder-main-switch {
     /*display: block; /*show on separate line*/
     font-size: medium;
     font-weight: bold;
-    margin-left: 10px;
+    margin: 10px;
+    margin-right: 40px;
+}
+
+.qol-plunder-update-status {
+    margin: 5px;
+    margin-bottom: 20px;
 }
 
 button.qol-plunder-add-target {
