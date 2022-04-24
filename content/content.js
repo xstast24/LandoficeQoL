@@ -164,6 +164,108 @@ function tweak_sidebarCopyArmyOption() {
     console.log(`Tweak "${SETTINGS_KEYS.sidebarCopyArmyOption}": Activated`);
 }
 
+/**Show buttons to quickly switch between all clans directly on the main page*/
+function tweak_clanQuickSwitchButtons() {
+    if (window.location.pathname !== '/main.php') {return} //option works only on the main page with sidebar
+
+    let topLeftMenu = document.getElementsByClassName('menu-left').item(0);
+    let existingSwitchElems = Array.from(topLeftMenu.getElementsByTagName('a'))
+    let clansListSettingsKey = 'quickClanSwitchInfo' //clan list is loaded/saved to storage under this key
+
+    let reloadButton = createReloadButton();
+    reloadButton.addEventListener('click', function () {
+        parseClansInfoAndSaveAndReload()
+    })
+
+    // load clan info from storage
+    chrome.storage.local.get(clansListSettingsKey, function (result) {
+        if (isEmpty(result)) {console.log('No clan info found - use the reload button (not browser refresh)'); return} //first run only
+        //add switches for all clans
+        let existingSwitches = existingSwitchElems.map(item => item.getAttribute('href'))
+        console.log('Loaded clans info: ', result[clansListSettingsKey])
+        let clans = result[clansListSettingsKey].map(info => Object.create({id: info[0], name: info[1], leader: info[2], img: info[3]}))
+        for (let clan of clans) {
+            if (existingSwitches.includes(clan.id)) {continue} //dont duplicate
+            let clanButton = createClanButton(clan);
+            //FIXME Loi sends ID through form (there is JS function for it), I am lazy to do it same, so just switch in background and refresh page
+            clanButton.addEventListener('click', function (event) {
+                event.preventDefault() //don't load the switch link directly - it wouldn't work, or it would redirect to settings
+                fetch(`http://heaven.landofice.com/settings/changeClan/${clan.id}`)
+                    .then(result => {
+                        if (result.ok) {clickSidebarOption('Obnovit')}
+                        else {alert(`Switching to clan ${clan.id} failed, LoI server returned error: ${result.status} ${result.statusText}`)}
+                    })
+                    .then(result => clickSidebarOption('Obnovit'))
+                    .catch(fail => alert(`Switching to clan ${clan.id} failed: ${fail}`))
+            })
+        }
+        // resize menu container, so they fit next to each other
+        //const switchWidth = getComputedStyle(existingSwitchElems[0]).width; --> string 54px
+        const resizedMenuWidth = clans.length * 64 + 50 //64 is size of 1 switch, 50 is reserve for reload button, padding etc.
+        topLeftMenu.style.width = `${resizedMenuWidth}px`
+    })
+
+    function createReloadButton() {
+        let updateButton = document.createElement('button');
+        updateButton.textContent = '🔄'
+        updateButton.setAttribute('type', 'button');
+        updateButton.setAttribute('class', 'qol-quick-clan-switch');
+        topLeftMenu.appendChild(updateButton);
+        return updateButton
+    }
+
+    function createClanButton(clan) {
+        let clanSwitchButton = document.createElement('a');
+        // loi is sending ID through form -> href is just clan ID, not the actual link "...settings/changeClan/<ID>" which redirects to settings
+        clanSwitchButton.setAttribute('href', clan.id);
+        //clanSwitchButton.setAttribute('href', clan.id);
+        clanSwitchButton.setAttribute('class', 'activate-clan tooltip ');
+
+        let clanImg = document.createElement('img');
+        clanImg.setAttribute('src', clan.img);
+        clanSwitchButton.appendChild(clanImg);
+
+        let hoverDescription = document.createElement('span');
+        hoverDescription.textContent = `${clan.name} id: ${clan.id}`;
+        clanSwitchButton.appendChild(hoverDescription);
+
+        topLeftMenu.insertBefore(clanSwitchButton, reloadButton);
+        return clanSwitchButton
+    }
+
+    function parseClansInfoAndSaveAndReload() {
+        fetch('http://heaven.landofice.com/settings')
+            .then(result => result.text())
+            .then(resultHtmlString => {
+                const resultDoc = new DOMParser().parseFromString(resultHtmlString, 'text/html');
+
+                //parse clans info
+                let clans = []
+                let tableFrame = resultDoc.getElementsByClassName('opaque-frame globalstats').item(0);
+                let table = tableFrame.getElementsByTagName('tbody').item(0);
+                let i = -1 //row index
+                for (let row of table.getElementsByTagName('tr')) {
+                    i++
+                    if (i % 2 === 1) {continue} //even rows have info about plunder cooldown, all main info is on odd rows
+
+                    let cols = row.getElementsByTagName('td')
+                    let img = '/images/avatars/def_avatar.jpg' //default img (empty)
+                    let imgElem = cols.item(0).getElementsByTagName('img').item(0)
+                    if (imgElem) {img = imgElem.getAttribute('src')}
+                    let id = cols.item(1).textContent
+                    let leader = cols.item(2).textContent
+                    let name = cols.item(3).textContent
+
+                    clans.push([id, name, leader, img])
+                }
+                console.log('Parsed clans info: ', clans)
+                //save clans to storage, must be primitives (no objects) -> list of lists
+                chrome.storage.local.set({[clansListSettingsKey]: clans}) //[key] -> use key's value as the key, not the variable name ("key")
+            })
+            .then(result => clickSidebarOption('Obnovit')) //refresh the page -> new clan info will be reflected
+    }
+}
+
 /**Vulkan equipment: make sure there is at least 5 equipment for fire mages every round, so it recruits fire mage(s) -> 1 arch mage of fire comes as bonus.*/
 function tweak_vulkanAutoBuyFireMage() {
     if (window.location.pathname !== '/main.php') {return} //option works only on the main page with sidebar
@@ -298,37 +400,45 @@ function tweak_plunderWatchdog() {
                     updateStatusArea.setStatusFail()
                     nextUpdateTimeout = SECOND;
                     // TODO scheduleNextUpdate()
+                    return Promise.reject(fail)
                 }
             )
             .then(resultHtmlString => {
                 console.log('Update: Second then - result html string arrived');
                 const resultDoc = new DOMParser().parseFromString(resultHtmlString, 'text/html');
                 let newPlaces = getAllPlunderPlaces(resultDoc);
+
+                //TODO compare function
+                //place: expected min time, expected max time
+                //place last status, current status
+                for (let i = 0; i < plunderPlaces.length; i++) {
+                    let oldPlace = plunderPlaces[i];
+                    let newPlace = newPlaces[i];
+
+                }
+
                 console.log('Update: new places:', newPlaces)
                 updatePlacesWithNewInfo(plunderPlaces, newPlaces);
 
                 nextUpdateTimeout = MINUTE; //TODO logic about correct timeout
-                scheduleNextUpdate();
+                // TODO scheduleNextUpdate();
 
                 updateStatusArea.setStatusSuccess()
-
-                clearAllTimeouts()// TODO rm, just for testing purposes to not spam loi backends
             })
             .catch(error => {
                 console.log('Update: catch error: ', error)
                 updateStatusArea.setStatusFail()
                 clearAllTimeouts()
-                //TODO reset state icon, restart timeouts
+                //TODO restart timeouts
             })
     }
 
-    function scheduleNextUpdate() {clearAllTimeouts(); setTimeout(update, nextUpdateTimeout)}
+    function scheduleNextUpdate() {clearAllTimeouts(); setTimeout(update, nextUpdateTimeout); console.log('Scheduled update:', nextUpdateTimeout);}
 
     function updatePlacesWithNewInfo(oldPlaces, newPlaces) {
         //replace current place info (status & attack) with the new place info (to reflect changes in UI)
         for (let i = 0; i < oldPlaces.length ; i++) {
             let oldPlace = oldPlaces[i]; let newPlace = newPlaces[i];
-            console.log('Updating place with new info: ', i, oldPlace, newPlace);
             if (newPlace.statusElem) {oldPlace.replaceStatusElem(newPlace.statusElem)}
             if (newPlace.attackElem) {oldPlace.replaceAttackElem(newPlace.attackElem)}
         }
@@ -340,11 +450,16 @@ function tweak_plunderWatchdog() {
     // TODO timers check the real time, cos e.g. PC goes to sleep it is inaccurate https://stackoverflow.com/a/41507793/7684041
     //TODO move outside functions to this scope, no need to pass params (still should anyway), can customise them maybe better though
 
+    const plunderStates = {
+        armyNotReady: 'Na takovýto útok potřebujeme přípravu',
+        cd2To8Hours: 'Na tohle místo je možné zaútočit za 2 - 8 hodin',
+        cd30MinTo2Hours: 'Na tohle místo je možné zaútočit za 30 minut až 2 hodiny',
+        lessThan30Min: 'Na tohle místo je možné zaútočit za Méně než 30 minut'
+    }
+
     function getAllPlunderPlaces(doc) {
         let plunderPlaces = []
-        console.log('Get plunder places: doc:', doc)
         for (let placeContainer of doc.getElementsByClassName('pleneni-table f-left t-c')) {
-            console.log('Get plunder places: place container', placeContainer)
             let p = {
                 name: placeContainer.getElementsByTagName('h4').item(0).textContent,
                 containerElem: placeContainer,
@@ -355,14 +470,8 @@ function tweak_plunderWatchdog() {
             p.replaceStatusElem = function(newStatusElem) {p.bodyContainerElem.replaceChild(newStatusElem, p.statusElem); p.statusElem = newStatusElem};
             p.replaceAttackElem = function(newAttackElem) {p.bodyContainerElem.replaceChild(newAttackElem, p.attackElem); p.attackElem = newAttackElem};
             plunderPlaces.push(p);
-            console.log('Get plunder places: p result', placeContainer)
         }
         return plunderPlaces
-    }
-
-    const plunderStates = {
-        armyNotReady: 'Na takovýto útok potřebujeme přípravu',
-
     }
 
     function createButtonsToAddOrRemoveTargets() {

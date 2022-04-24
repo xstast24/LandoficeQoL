@@ -56,3 +56,10 @@ button.qol-plunder-remove-target {
     background-color: #bab595;
     border-radius: 5px;
 }
+
+/*QUICK CLAN SWITCH*/
+button.qol-quick-clan-switch {
+    background-color: transparent;
+    border: none;
+    font-size: large;
+}

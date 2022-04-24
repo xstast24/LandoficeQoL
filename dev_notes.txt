@@ -35,3 +35,19 @@ error => {console.error('Quick attack action failed: ', error); return Promise.r
 WebStorm reformat selected code (align etc.): Ctrl+Alt+L or Cmd+Option+L
 
 Convert HTMLCollection to array: Array.from(collection)
+
+Promise then handling scenarios mechanism explained (by observation):
+/**
+ * If func returns Promise.resolve(), it is passed to then's success result handle. Following then gets anything returned by the previous then as a success result,
+ * if the previous then didn't return anything, then "undefined" is passed (still as success result). Fail result is given ONLY if somebody returned Promise.reject(r).
+ * If func returns Promise.rejected(), it is passed to then's failure handle. If there is no failure handle in then X, it is skipped and fail result is passed
+ * to then X+N which handles the failure. If no then handled it, it is passed to the closest "catch" branch.
+ In other words:
+ - If "then" returns anything (or no return = undefined), it is counted as success and passed to the next "then" success handle.
+ - The initial function must return Promise.resolve/reject, if it doesn't, the following "then" won't happen at all.
+    On the other hand, "then" can return anything and it is passed down as success result.
+ - If function or "then" returns Promise.rejected(f), it is passed to the closest "then" that has failure handle, or to "catch" if no then has failure handle.
+ - If there is no uncaught Promise.rejected(), "catch" clause won't happen at all.
+ * */
+
+ Override default CSS style of the webpage -> use !important tag in custom CSS like this: "width: 350px !important"

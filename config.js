@@ -25,6 +25,7 @@ const SETTINGS = {
     //maxEquipmentButton: false,
     quickAttackButton: false, //add option to all events/confrontations to 1-click attack&clear them
     sidebarCopyArmyOption: false, //button to quickly copy current army into clipboard, so it can be easily pasted into simulator
+    clanQuickSwitchButtons: false,
     vulkanAutoBuyFireMage: false, //before next turn, ensure (auto-buy) there is equipment to recruit at least 1 mage of fire (to recruit arch mage of fire)
     alertFrancoxSect: false, //show alert when soothsayer from Francox's sect arrives with a riddle
     plunderWatchdog: false, //watchdog for plundering (monitor, alert, auto attack) to not miss the needed places
@@ -35,6 +36,7 @@ const SETTINGS_KEYS = {
     //maxEquipmentButton: 'maxEquipmentButton',
     quickAttackButton: 'quickAttackButton',
     sidebarCopyArmyOption: 'sidebarCopyArmyOption',
+    clanQuickSwitchButtons: 'clanQuickSwitchButtons',
     vulkanAutoBuyFireMage: 'vulkanAutoBuyFireMage',
     alertFrancoxSect: 'alertFrancoxSect',
     plunderWatchdog: 'plunderWatchdog',
