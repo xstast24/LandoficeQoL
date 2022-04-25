@@ -177,17 +177,23 @@ function tweak_clanQuickSwitchButtons() {
         parseClansInfoAndSaveAndReload()
     })
 
-    // load clan info from storage
+    // load clans info from storage and add switches for all clans
     chrome.storage.local.get(clansListSettingsKey, function (result) {
         if (isEmpty(result)) {console.log('No clan info found - use the reload button (not browser refresh)'); return} //first run only
-        //add switches for all clans
-        let existingSwitches = existingSwitchElems.map(item => item.getAttribute('href'))
-        console.log('Loaded clans info: ', result[clansListSettingsKey])
+        let existingSwitches = existingSwitchElems.map(item => item.getAttribute('href'));
+        let currentActiveClanName = document.getElementsByClassName('klan-name').item(0);
+        currentActiveClanName = currentActiveClanName.firstElementChild.textContent.replace('Klan ', '');
+        //create clan switches
         let clans = result[clansListSettingsKey].map(info => Object.create({id: info[0], name: info[1], leader: info[2], img: info[3]}))
         for (let clan of clans) {
             if (existingSwitches.includes(clan.id)) {continue} //dont duplicate
             let clanButton = createClanButton(clan);
-            //FIXME Loi sends ID through form (there is JS function for it), I am lazy to do it same, so just switch in background and refresh page
+            if (clan.name === currentActiveClanName) {
+                clanButton.setAttribute('class', 'activate-clan tooltip active'); //makes the current clan img glow
+                continue; //no need to set click listener to activate the clan (already active) -> skip
+            }
+            //add click listener to button to load the selected clan
+            //NOTE: Loi sends ID through some form (there is JS function for it), I am lazy to investigate "how", so I just switch in background and refresh page
             clanButton.addEventListener('click', function (event) {
                 event.preventDefault() //don't load the switch link directly - it wouldn't work, or it would redirect to settings
                 fetch(`http://heaven.landofice.com/settings/changeClan/${clan.id}`)
@@ -258,7 +264,6 @@ function tweak_clanQuickSwitchButtons() {
 
                     clans.push([id, name, leader, img])
                 }
-                console.log('Parsed clans info: ', clans)
                 //save clans to storage, must be primitives (no objects) -> list of lists
                 chrome.storage.local.set({[clansListSettingsKey]: clans}) //[key] -> use key's value as the key, not the variable name ("key")
             })
