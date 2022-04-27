@@ -396,7 +396,7 @@ function tweak_plunderWatchdog() {
         fetch('http://heaven.landofice.com/plunder')
             .then(result => {
                     if (result.ok) {
-                        console.log('Update: result ok')
+                        console.log('Update: fetch plundering - result ok')
                         return result.text()
                     } else {
                         updateStatusArea.setStatusFail()
@@ -407,7 +407,6 @@ function tweak_plunderWatchdog() {
                 }
             )
             .then(resultHtmlString => {
-                console.log('Update: Second then - result html string arrived');
                 const resultDoc = new DOMParser().parseFromString(resultHtmlString, 'text/html');
                 let newPlaces = getAllPlunderPlaces(resultDoc);
 
@@ -435,7 +434,7 @@ function tweak_plunderWatchdog() {
                             alert(`${target.name} is ready to attack!`);
                         }
                         //keep long interval (so refresh doesn't interfere with attacks, or alert doesn't spam user when trying to attack manually)
-                    } else if (target.status === plunderStates.lessThan30Min) {
+                    } else if (target.status() === plunderStates.lessThan30Min) {
                         //SET SHORT UPDATE INTERVAL if any target is appearing soon
                         nextUpdateTimeout = getRandomInt(updateIntervalShort, updateIntervalShort+SECOND);
                     }
@@ -487,15 +486,16 @@ function tweak_plunderWatchdog() {
         clearAllTimeouts();
         setTimeout(update, nextUpdateTimeout);
         updateStatusArea.setNextUpdateTime(nextUpdateTimeout); //reflect in UI, so player can see it
-        console.log('Scheduled update:', nextUpdateTimeout);
+        console.log(`Scheduled next update - in ${nextUpdateTimeout/1000} s`);
     }
 
     function updatePlacesWithNewInfo(oldPlaces, newPlaces) {
         //replace current place info (status & attack) with the new place info (to reflect changes in UI)
         for (let i = 0; i < oldPlaces.length ; i++) {
             let oldPlace = oldPlaces[i]; let newPlace = newPlaces[i];
-            if (newPlace.statusElem) {oldPlace.replaceStatusElem(newPlace.statusElem)}
-            if (newPlace.attackElem) {oldPlace.replaceAttackElem(newPlace.attackElem)}
+            oldPlace.replaceStatusElem(newPlace.statusElem);
+            oldPlace.replaceAttackElem(newPlace.attackElem);
+            oldPlace.replaceSpecialMessage(newPlace.specialMessage());
         }
     }
 
@@ -524,15 +524,50 @@ function tweak_plunderWatchdog() {
                 containerElem: placeContainer,
                 bodyContainerElem: placeContainer.getElementsByClassName('zmerchspodek').item(0), //div with all info (e.g. status), except the name
                 attackElem: placeContainer.getElementsByTagName('a').item(0), //if attack on cooldown -> null
-                statusElem: placeContainer.getElementsByTagName('i').item(1) //if attack ready -> no status -> null
+                statusElem: placeContainer.getElementsByTagName('i').item(1), //if attack ready -> no status -> null
             }
+            //there is either attackElem, statusElem or special message (army not ready/place under construction/...)
+            p.specialMessage = function () {
+                if (p.attackElem || p.statusElem) return null;
+                return p.bodyContainerElem.lastChild.textContent; //message is just a simple text (no element, no tag) at the end of body container
+            };
+            p.replaceSpecialMessage = function (newSpecialMsg) {
+                if (newSpecialMsg) {
+                    if (p.specialMessage()) p.bodyContainerElem.lastChild.textContent = newSpecialMsg;
+                    else p.bodyContainerElem.append(newSpecialMsg);
+                } else {
+                    if (p.specialMessage()) p.bodyContainerElem.lastChild.textContent = '';
+                }
+            }
+            p.createStatusElem = function(statusText) {
+                let statusElem = document.createElement('i');
+                statusElem.textContent = statusText;
+                p.bodyContainerElem.appendChild(statusElem);
+            };
             p.replaceStatusElem = function(newStatusElem) {
-                p.bodyContainerElem.replaceChild(newStatusElem, p.statusElem);
+                if (newStatusElem) {
+                    console.log('REPLACING STATUS - removing elem: ', p.statusElem, 'NEW ELEM', newStatusElem)
+                    if (p.statusElem) {p.bodyContainerElem.replaceChild(newStatusElem, p.statusElem);}
+                    else {
+                        if (p.specialMessage()) p.replaceSpecialMessage('');
+                        p.createStatusElem(newStatusElem.textContent)
+                    }
+                } else {
+                    console.log('REPLACING STATUS - removing elem: ', p.statusElem)
+                    if (p.statusElem) {p.bodyContainerElem.removeChild(p.statusElem)}
+                }
                 p.statusElem = newStatusElem
             };
             p.replaceAttackElem = function(newAttackElem) {
-                console.log('REPLACING: ', p.attackElem, ' BY: ', newAttackElem);
-                p.bodyContainerElem.replaceChild(newAttackElem, p.attackElem);
+                if (newAttackElem) {
+                    if (p.attackElem) {p.bodyContainerElem.replaceChild(newAttackElem, p.attackElem);}
+                    else {
+                        if (p.specialMessage()) p.replaceSpecialMessage('');
+                        p.bodyContainerElem.appendChild(newAttackElem)
+                    }
+                } else {
+                    if (p.attackElem) {p.bodyContainerElem.removeChild(p.attackElem)}
+                }
                 p.attackElem = newAttackElem
             };
             p.status = function () {
