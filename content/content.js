@@ -321,6 +321,9 @@ function tweak_plunderWatchdog() {
 
     const SECOND = 1000; //ms
     const MINUTE = 60000; //ms
+    let updateIntervalLong = MINUTE; //in ms
+    let updateIntervalShort = 2*SECOND; //in ms
+    let nextUpdateTimeout = SECOND; //first update watchdog after 1s to quickly update basic time info; later this var is modified dynamically as needed
 
     //CONTROL SECTION - create tweak control section above the plundering (right below the main header)
     let mainHeader = getElementByText('Plenění', document, 'h3', true);
@@ -330,42 +333,41 @@ function tweak_plunderWatchdog() {
     controlSectionTitle.textContent = 'Plunder watchdog control section';
     controlSection.appendChild(controlSectionTitle);
 
-    //TODO better comment - plunder settings, why disabled
-    let monitoring = createWatchdogOptionCheckbox(controlSection, 'Monitoring', 'qol-plunder-checkbox', 'monitoringToggle');
-    let alert = createWatchdogOptionCheckbox(controlSection, 'Alert', 'qol-plunder-checkbox', 'alertToggle');
+    //checkboxes/buttons are by default disabled, only after settings are loaded from storage (later), they can be set to correct values and enabled
+    let monitoring = createWatchdogOptionCheckbox(controlSection, 'MonitoringTODO', 'qol-plunder-checkbox', 'monitoringToggle');
+    let showAlert = createWatchdogOptionCheckbox(controlSection, 'Alert', 'qol-plunder-checkbox', 'alertToggle');
     let autoAttack = createWatchdogOptionCheckbox(controlSection, 'AutoAttack', 'qol-plunder-checkbox', 'autoAttackToggle');
     controlSection.appendChild(document.createElement('br'))
-
     let targets = createWatchdogTargetList(controlSection);
     controlSection.appendChild(document.createElement('br'))
-
     let mainSwitch = createWatchdogMainSwitch(controlSection);
+    controlSection.appendChild(document.createElement('br'))
+    let timeIntervalSelectors = createTimeIntervalSelectors(controlSection); //TODO currently only shows hardcoded intervals, make selectors, so user can choose
+    controlSection.appendChild(document.createElement('br'))
     let updateStatusArea = createUpdateStatusArea(controlSection);
     controlSection.appendChild(document.createElement('br'))
-
     createButtonsToAddOrRemoveTargets();
 
-    let options = [mainSwitch, targets, monitoring, alert, autoAttack];
-    let nextUpdateTimeout = SECOND; //first update watchdog after 1s to quickly update basic time info
+    let options = [mainSwitch, targets, monitoring, showAlert, autoAttack];
     let plunderPlaces = getAllPlunderPlaces(document);
 
     loadSettings(options) //load states of the plunder settings
         .then(result => {
             monitoring.checkbox.checked = monitoring.settingsValue;
-            alert.checkbox.checked = alert.settingsValue;
+            showAlert.checkbox.checked = showAlert.settingsValue;
             autoAttack.checkbox.checked = autoAttack.settingsValue;
             mainSwitch.setStatus(mainSwitch.settingsValue);
             targets.refreshTargetsList()
-
             //config loaded -> enable controls, so player can interact with them
             mainSwitch.button.disabled = false;
-            for (let checkbox of [monitoring, alert, autoAttack]) {checkbox.checkbox.disabled = false}
+            for (let checkbox of [monitoring, showAlert, autoAttack]) {checkbox.checkbox.disabled = false}
             for (let addButton of document.getElementsByClassName('qol-plunder-add-target')) {addButton.disabled = false}
             for (let rmButton of document.getElementsByClassName('qol-plunder-remove-target')) {rmButton.disabled = false}
 
             //TODO this happens after page is opened
             if (mainSwitch.settingsValue === true) {
-                setTimeout(update, nextUpdateTimeout)
+                nextUpdateTimeout = SECOND
+                scheduleNextUpdate()
             } //else - watchdog is off -> do nothing
 
             //TODO this happens if main switch button is clicked
@@ -374,8 +376,12 @@ function tweak_plunderWatchdog() {
                 saveOptionState(mainSwitch);
                 mainSwitch.setStatus(mainSwitch.settingsValue);
                 if (mainSwitch.settingsValue === true) {
-                    setTimeout(update, nextUpdateTimeout)
-                } else {clearAllTimeouts()}
+                    nextUpdateTimeout = SECOND
+                    scheduleNextUpdate()
+                } else {
+                    updateStatusArea.nextUpdateTime.textContent = '-'
+                    clearAllTimeouts()
+                }
             })
         })
 
@@ -394,18 +400,10 @@ function tweak_plunderWatchdog() {
                         return result.text()
                     } else {
                         updateStatusArea.setStatusFail()
-                        console.warn('Update: result not ok:', result)
-                        nextUpdateTimeout = MINUTE;
-                        //TODO server error - try later (MINUTE); logout - solve logout and retry immediately (SECOND), or stop updates completely
-                        return Promise.reject(result)
+                        console.warn('Update: result not ok (server error or logout?):', result)
+                        //TODO Handle logout - solve logout and retry immediately (SECOND), or stop updates completely. Will logout return error or 200???
+                        return Promise.reject(result) //this will propagate to "catch" case where update is rescheduled
                     }
-                },
-                fail => {
-                    console.error('Update: result promise rejected: ', fail)
-                    updateStatusArea.setStatusFail()
-                    nextUpdateTimeout = SECOND;
-                    // TODO scheduleNextUpdate()
-                    return Promise.reject(fail)
                 }
             )
             .then(resultHtmlString => {
@@ -413,32 +411,84 @@ function tweak_plunderWatchdog() {
                 const resultDoc = new DOMParser().parseFromString(resultHtmlString, 'text/html');
                 let newPlaces = getAllPlunderPlaces(resultDoc);
 
-                //TODO compare function
-                //place: expected min time, expected max time
-                //place last status, current status
-                for (let i = 0; i < plunderPlaces.length; i++) {
-                    let oldPlace = plunderPlaces[i];
-                    let newPlace = newPlaces[i];
+                //TODO monitoring; compare function, place: expected min time, expected max time, place last status, current status
+                // for (let i = 0; i < plunderPlaces.length; i++) {
+                //     let oldPlace = plunderPlaces[i];
+                //     let newPlace = newPlaces[i];
+                // }
 
-                }
-
-                console.log('Update: new places:', newPlaces)
+                //update statuses and attack buttons of all places
                 updatePlacesWithNewInfo(plunderPlaces, newPlaces);
 
-                nextUpdateTimeout = MINUTE; //TODO logic about correct timeout
-                // TODO scheduleNextUpdate();
+                //CHECK ALL TARGETS AND DO ACTION IF NEEDED
+                nextUpdateTimeout = getRandomInt(updateIntervalLong-5*SECOND, updateIntervalLong+5*SECOND);
+                for (let id of targets.settingsValue) {
+                    let target = plunderPlaces[id];
+                    if (target.isAttackReady()) {
+                        //ATTACK TARGET
+                        if (autoAttack.checkbox.checked) {
+                            attackPlace(target);
+                            break;
+                        }
+                        //SHOW ALERT
+                        if (showAlert.checkbox.checked) {
+                            alert(`${target.name} is ready to attack!`);
+                        }
+                        //keep long interval (so refresh doesn't interfere with attacks, or alert doesn't spam user when trying to attack manually)
+                    } else if (target.status === plunderStates.lessThan30Min) {
+                        //SET SHORT UPDATE INTERVAL if any target is appearing soon
+                        nextUpdateTimeout = getRandomInt(updateIntervalShort, updateIntervalShort+SECOND);
+                    }
+                }
 
+                scheduleNextUpdate();
                 updateStatusArea.setStatusSuccess()
             })
             .catch(error => {
-                console.log('Update: catch error: ', error)
+                console.warn('Update failed - promise returned error (rejected):', error)
                 updateStatusArea.setStatusFail()
                 clearAllTimeouts()
-                //TODO restart timeouts
+                scheduleNextUpdate() //next update interval (long/short) is kept same as for the last update
             })
     }
 
-    function scheduleNextUpdate() {clearAllTimeouts(); setTimeout(update, nextUpdateTimeout); console.log('Scheduled update:', nextUpdateTimeout);}
+    function attackPlace(place) {
+        let url = place.attackElem.getAttribute('href'); //example http://heaven.landofice.com/utok.php?utok=pleneni_13
+        fetch(url)
+            .then(result => {
+                // TODO add handling of http://heaven.landofice.com/nogame/error.php?err=attack-none "bitva nepristupna" - will return OK or FAIL??
+                if (result.ok) {
+                    return result.text()
+                } else {
+                    console.error(`Auto attack on "${place.name}" failed on fetching attack table (== clicking the attack)! Server error or somebody was faster?`);
+                    return Promise.reject(result) //--> next .then won't happen
+                }
+            })
+            .then(resultHtmlString => {
+                const resultDocument = new DOMParser().parseFromString(resultHtmlString, 'text/html');
+
+                //submit the attack form with all units (attackForm is the table/sheet where unit numbers are filled by player)
+                let attackForm = resultDocument.getElementsByClassName('utok-formular').item(0);
+                fetch(url, {method: 'post', body: new FormData(attackForm)})
+                    .then(result => {
+                        if (result.ok) {
+                            console.log(`Auto attack on "${place.name}" - success B-)`)
+                        } else {
+                            console.error(`Auto attack on "${place.name}" failed on submitting attack form! Server error or somebody was faster?`);
+                        }
+                    })
+            })
+            .catch(error => {
+                console.error(`Auto attack on "${place.name}" failed! Maybe network error? Error: `, error);
+            })
+    }
+
+    function scheduleNextUpdate() {
+        clearAllTimeouts();
+        setTimeout(update, nextUpdateTimeout);
+        updateStatusArea.setNextUpdateTime(nextUpdateTimeout); //reflect in UI, so player can see it
+        console.log('Scheduled update:', nextUpdateTimeout);
+    }
 
     function updatePlacesWithNewInfo(oldPlaces, newPlaces) {
         //replace current place info (status & attack) with the new place info (to reflect changes in UI)
@@ -456,24 +506,40 @@ function tweak_plunderWatchdog() {
     //TODO move outside functions to this scope, no need to pass params (still should anyway), can customise them maybe better though
 
     const plunderStates = {
-        armyNotReady: 'Na takovýto útok potřebujeme přípravu',
-        cd2To8Hours: 'Na tohle místo je možné zaútočit za 2 - 8 hodin',
+        attackReady: 'No status -> attack ready',
+        lessThan30Min: 'Na tohle místo je možné zaútočit za Méně než 30 minut',
         cd30MinTo2Hours: 'Na tohle místo je možné zaútočit za 30 minut až 2 hodiny',
-        lessThan30Min: 'Na tohle místo je možné zaútočit za Méně než 30 minut'
+        cd2To8Hours: 'Na tohle místo je možné zaútočit za 2 - 8 hodin',
+        armyNotReady: 'Na takovýto útok potřebujeme přípravu'
     }
 
     function getAllPlunderPlaces(doc) {
         let plunderPlaces = []
+        let i = -1;
         for (let placeContainer of doc.getElementsByClassName('pleneni-table f-left t-c')) {
+            i++;
             let p = {
+                id: i,
                 name: placeContainer.getElementsByTagName('h4').item(0).textContent,
                 containerElem: placeContainer,
                 bodyContainerElem: placeContainer.getElementsByClassName('zmerchspodek').item(0), //div with all info (e.g. status), except the name
                 attackElem: placeContainer.getElementsByTagName('a').item(0), //if attack on cooldown -> null
                 statusElem: placeContainer.getElementsByTagName('i').item(1) //if attack ready -> no status -> null
             }
-            p.replaceStatusElem = function(newStatusElem) {p.bodyContainerElem.replaceChild(newStatusElem, p.statusElem); p.statusElem = newStatusElem};
-            p.replaceAttackElem = function(newAttackElem) {p.bodyContainerElem.replaceChild(newAttackElem, p.attackElem); p.attackElem = newAttackElem};
+            p.replaceStatusElem = function(newStatusElem) {
+                p.bodyContainerElem.replaceChild(newStatusElem, p.statusElem);
+                p.statusElem = newStatusElem
+            };
+            p.replaceAttackElem = function(newAttackElem) {
+                console.log('REPLACING: ', p.attackElem, ' BY: ', newAttackElem);
+                p.bodyContainerElem.replaceChild(newAttackElem, p.attackElem);
+                p.attackElem = newAttackElem
+            };
+            p.status = function () {
+                if (p.statusElem) {return p.statusElem.textContent}
+                else {return plunderStates.attackReady}
+            };
+            p.isAttackReady = function () {return (p.attackElem !== null)};
             plunderPlaces.push(p);
         }
         return plunderPlaces
@@ -488,7 +554,7 @@ function tweak_plunderWatchdog() {
             addTarget.disabled = true;
             place.containerElem.appendChild(addTarget);
             addTarget.addEventListener('click', function (event) {
-                targets.addTarget(place.name)
+                targets.addTarget(place)
             })
 
             let removeTarget = document.createElement('button');
@@ -498,9 +564,105 @@ function tweak_plunderWatchdog() {
             removeTarget.disabled = true;
             place.containerElem.appendChild(removeTarget);
             removeTarget.addEventListener('click', function (event) {
-                targets.removeTarget(place.name)
+                targets.removeTarget(place)
             })
         }
+    }
+
+    function createWatchdogTargetList(parent) {
+        let label = document.createElement('label')
+        label.textContent = 'Selected targets:'
+        label.setAttribute('class', 'qol-plunder-target-list')
+        let list = document.createElement('span')
+        list.textContent = 'None'
+        list.setAttribute('class', 'qol-plunder-target-list')
+        parent.appendChild(label)
+        parent.appendChild(list)
+
+        let targets = {labelElem: label, listElem: list};
+        targets.settingsKey = 'plunderTargetList';
+        targets.settingsValueDefault = [];
+        targets.settingsValue = targets.settingsValueDefault;
+        targets.refreshTargetsList = function () { //update/show current targets in UI
+            let targetNames = [];
+            for (let [i, place] of getAllPlunderPlaces(document).entries()) {
+                if (targets.settingsValue.includes(i)) {targetNames.push(place.name)}
+            }
+            targets.listElem.textContent = targetNames.toString();
+        }
+        targets.addTarget = function (plunderPlace) {
+            if (!targets.settingsValue.includes(plunderPlace.id)) {
+                targets.settingsValue.push(plunderPlace.id);
+                saveOptionState(targets);
+                targets.refreshTargetsList();
+            }
+        }
+        targets.removeTarget = function (plunderPlace) {
+            if (targets.settingsValue.includes(plunderPlace.id)) {
+                targets.settingsValue = removeValueFromArray(plunderPlace.id, targets.settingsValue);
+                saveOptionState(targets);
+                targets.refreshTargetsList();
+            }
+        }
+        return targets
+    }
+
+    function createUpdateStatusArea(parent) {
+        let statusLabel = document.createElement('label');
+        statusLabel.textContent = 'Last update status:'
+        statusLabel.setAttribute('class', 'qol-plunder-update-status')
+        let status = document.createElement('span')
+        status.setAttribute('class', 'qol-plunder-update-status')
+        status.textContent = '⏾'
+        //TODO fancy loading gif? let status = document.createElement('img'); status.setAttribute('src', chrome.runtime.getURL('data/loading_circle32.gif'))
+        let time = document.createElement('span')
+        time.setAttribute('class', 'qol-plunder-update-status')
+        time.textContent = new Date().toLocaleTimeString();
+        let nextUpdate = document.createElement('label');
+        nextUpdate.textContent = 'Next update:'
+        nextUpdate.setAttribute('class', 'qol-plunder-update-status')
+        let nextUpdateTime = document.createElement('span')
+        nextUpdateTime.setAttribute('class', 'qol-plunder-update-status')
+        nextUpdateTime.textContent = '-'; //will be set later when scheduling updates etc.
+
+        parent.appendChild(statusLabel);
+        parent.appendChild(status);
+        parent.appendChild(time);
+        parent.appendChild(nextUpdate);
+        parent.appendChild(nextUpdateTime);
+
+        let updateStatusArea = {label: statusLabel, status: status, time: time, nextUpdateLabel: nextUpdate, nextUpdateTime: nextUpdateTime}
+        updateStatusArea.setNextUpdateTime = function (nextUpdateTimeoutMs) {
+            let currentDate = new Date();
+            currentDate.setMilliseconds(currentDate.getMilliseconds()+nextUpdateTimeoutMs);
+            updateStatusArea.nextUpdateTime.textContent = currentDate.toLocaleTimeString()
+        };
+        updateStatusArea.setStatusSuccess = function () {
+            updateStatusArea.status.textContent = '✅';
+            time.textContent = new Date().toLocaleTimeString()
+        };
+        updateStatusArea.setStatusFail = function () {
+            updateStatusArea.status.textContent = '❌';
+            time.textContent = new Date().toLocaleTimeString()
+        };
+        updateStatusArea.setStatusLoading = function () {
+            updateStatusArea.status.textContent = '⏳';
+            time.textContent = new Date().toLocaleTimeString()
+        };
+        return updateStatusArea
+    }
+
+    function createTimeIntervalSelectors(parent) {
+        //TODO currently only hardcoded labels, make it selectable and save/load settings
+        let longIntervalLabel = document.createElement('label');
+        longIntervalLabel.textContent = `Long interval (over 30 min): ${updateIntervalLong/1000} s`
+        longIntervalLabel.setAttribute('class', 'qol-plunder-update-time-selector')
+        let shortIntervalLabel = document.createElement('label');
+        shortIntervalLabel.textContent = `Short interval (less than 30 min): ${updateIntervalShort/1000} s`
+        shortIntervalLabel.setAttribute('class', 'qol-plunder-update-time-selector')
+        parent.appendChild(longIntervalLabel)
+        parent.appendChild(shortIntervalLabel)
+        return {longIntervalLabel: longIntervalLabel, shortIntervalLabel: shortIntervalLabel}
     }
 }
 
@@ -564,90 +726,29 @@ function createWatchdogMainSwitch(parent) {
     return mainSwitch
 }
 
-function createUpdateStatusArea(parent) {
-    let statusLabel = document.createElement('label');
-    statusLabel.textContent = 'Last update status:'
-    statusLabel.setAttribute('class', 'qol-plunder-update-status')
-    parent.appendChild(statusLabel);
+function createWatchdogOptionCheckbox(parent, name, css_class, id) {
+    let checkbox = document.createElement('input');
+    checkbox.setAttribute('type', 'checkbox');
+    checkbox.setAttribute('id', id);
+    checkbox.setAttribute('class', css_class);
+    checkbox.disabled = true;
+    let label = document.createElement('label');
+    label.textContent = name
+    label.setAttribute('for', id)
+    label.setAttribute('class', css_class)
+    parent.appendChild(label);
+    parent.appendChild(checkbox);
 
-    let status = document.createElement('span')
-    status.setAttribute('class', 'qol-plunder-update-status')
-    status.textContent = '⏾'
-    //TODO fancy loading gif? let status = document.createElement('img'); status.setAttribute('src', chrome.runtime.getURL('data/loading_circle32.gif'))
-    parent.appendChild(status);
+    let toggle = {checkbox: checkbox, label: label};
+    toggle.settingsKey = `plunder${name}Checkbox`;
+    toggle.settingsValueDefault = false;
+    toggle.settingsValue = toggle.settingsValueDefault; //init default, real value will be later loaded from local config ASAP
 
-    // let timeLabel = document.createElement('label');
-    // timeLabel.textContent = 'Last update time:'
-    // timeLabel.setAttribute('class', 'qol-plunder-update-status')
-    // parent.appendChild(timeLabel);
+    //save checkbox state to storage on change and update its value in the option object
+    toggle.checkbox.addEventListener('change', function () {
+        toggle.settingsValue = toggle.checkbox.checked;
+        saveOptionState(toggle);
+    })
 
-    let time = document.createElement('span')
-    time.setAttribute('class', 'qol-plunder-update-status')
-    time.textContent = new Date().toLocaleTimeString();
-    parent.appendChild(time);
-
-    let updateStatusArea = {label: statusLabel, status: status, time: time}
-    updateStatusArea.setStatusSuccess = function () {updateStatusArea.status.textContent = '✅'; time.textContent = new Date().toLocaleTimeString()};
-    updateStatusArea.setStatusFail = function () {updateStatusArea.status.textContent = '❌'; time.textContent = new Date().toLocaleTimeString()};
-    updateStatusArea.setStatusLoading = function () {updateStatusArea.status.textContent = '⏳'; time.textContent = new Date().toLocaleTimeString()};
-    return updateStatusArea
+    return toggle
 }
-
-function createWatchdogTargetList(parent) {
-    let label = document.createElement('label')
-    label.textContent = 'Selected targets:'
-    label.setAttribute('class', 'qol-plunder-target-list')
-    let list = document.createElement('span')
-    list.textContent = 'None'
-    list.setAttribute('class', 'qol-plunder-target-list')
-    parent.appendChild(label)
-    parent.appendChild(list)
-
-    let targets = {labelElem: label, listElem: list};
-    targets.settingsKey = 'plunderTargetList';
-    targets.settingsValueDefault = [];
-    targets.settingsValue = targets.settingsValueDefault;
-    targets.refreshTargetsList = function () {targets.listElem.textContent = targets.settingsValue} //update/show current targets in UI
-    targets.addTarget = function (targetName) {
-        if (!targets.settingsValue.includes(targetName)) {
-            targets.settingsValue.push(targetName);
-            saveOptionState(targets);
-            targets.refreshTargetsList();
-        }
-    }
-    targets.removeTarget = function (targetName) {
-        if (targets.settingsValue.includes(targetName)) {
-            targets.settingsValue = removeValueFromArray(targetName, targets.settingsValue);
-            saveOptionState(targets);
-            targets.refreshTargetsList();
-        }
-    }
-    return targets
-}
-
-    function createWatchdogOptionCheckbox(parent, name, css_class, id) {
-        let checkbox = document.createElement('input');
-        checkbox.setAttribute('type', 'checkbox');
-        checkbox.setAttribute('id', id);
-        checkbox.setAttribute('class', css_class);
-        checkbox.disabled = true;
-        let label = document.createElement('label');
-        label.textContent = name
-        label.setAttribute('for', id)
-        label.setAttribute('class', css_class)
-        parent.appendChild(label);
-        parent.appendChild(checkbox);
-
-        let toggle = {checkbox: checkbox, label: label};
-        toggle.settingsKey = `plunder${name}Checkbox`;
-        toggle.settingsValueDefault = false;
-        toggle.settingsValue = toggle.settingsValueDefault; //init default, real value will be later loaded from local config ASAP
-
-        //save checkbox state to storage on change and update its value in the option object
-        toggle.checkbox.addEventListener('change', function () {
-            toggle.settingsValue = toggle.checkbox.checked;
-            saveOptionState(toggle);
-        })
-
-        return toggle
-    }

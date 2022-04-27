@@ -39,6 +39,12 @@ button.qol-plunder-main-switch {
     margin-right: 40px;
 }
 
+.qol-plunder-update-time-selector {
+    margin: 5px;
+    margin-bottom: 20px;
+    margin-right: 20px;
+}
+
 .qol-plunder-update-status {
     margin: 5px;
     margin-bottom: 20px;
