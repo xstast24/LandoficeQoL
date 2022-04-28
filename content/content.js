@@ -315,7 +315,7 @@ function tweak_alertFrancoxSect() {
     console.log(`Tweak "${SETTINGS_KEYS.alertFrancoxSect}": Activated`);
 }
 
-/**TODO how it works, disabled elems, buttons, refresh...*/
+/**Plunder watchdog*/
 function tweak_plunderWatchdog() {
     if (window.location.pathname !== '/plunder') {return} //works only on the plunder page
 
@@ -364,6 +364,7 @@ function tweak_plunderWatchdog() {
             mainSwitch.button.disabled = false;
             targets.clearButton.disabled = false;
             for (let checkbox of [monitoring, showAlert, autoAttack]) {checkbox.checkbox.disabled = false}
+            monitoring.checkbox.disabled = true //TODO remove after monitoring is implemented
             for (let addButton of document.getElementsByClassName('qol-plunder-add-target')) {addButton.disabled = false}
             for (let rmButton of document.getElementsByClassName('qol-plunder-remove-target')) {rmButton.disabled = false}
 
@@ -732,91 +733,91 @@ function tweak_plunderWatchdog() {
         parent.appendChild(shortIntervalLabel)
         return {longIntervalLabel: longIntervalLabel, shortIntervalLabel: shortIntervalLabel}
     }
-}
 
-/**Load all 'settingsValue' attribute for all given option objects. Do it asynchronously, return a promise */
-function loadSettings(plunderOptions) {
-    return new Promise(function (resolve, reject) {
-        let keys = plunderOptions.map(option => option.settingsKey);
-        chrome.storage.local.get(keys, function (result) {
-            for (let option of plunderOptions) {
-                if (result[option.settingsKey] === undefined) { //first run - initialize setting with the default value
-                    saveOptionState(option);
-                } else {
-                    option.settingsValue = result[option.settingsKey];
+    /**Load all 'settingsValue' attribute for all given option objects. Do it asynchronously, return a promise */
+    function loadSettings(plunderOptions) {
+        return new Promise(function (resolve, reject) {
+            let keys = plunderOptions.map(option => option.settingsKey);
+            chrome.storage.local.get(keys, function (result) {
+                for (let option of plunderOptions) {
+                    if (result[option.settingsKey] === undefined) { //first run - initialize setting with the default value
+                        saveOptionState(option);
+                    } else {
+                        option.settingsValue = result[option.settingsKey];
+                    }
                 }
-            }
-            resolve(result); //inspired by https://stackoverflow.com/a/59441208/7684041
-        });
-    })
-}
-
-function saveOptionState(option) {
-    chrome.storage.local.set({[option.settingsKey]: option.settingsValue}) //[key] -> use key's value as the key, not the variable name ("key")
-}
-
-function createWatchdogMainSwitch(parent) {
-    let label = document.createElement('label')
-    label.textContent = 'Watchdog status:'
-    label.setAttribute('class', 'qol-plunder-main-switch')
-
-    let status = document.createElement('span')
-    status.textContent = '⏾'
-    status.setAttribute('class', 'qol-plunder-main-switch')
-
-    let button = document.createElement('button');
-    button.setAttribute('type', 'button');
-    button.setAttribute('class', 'qol-plunder-main-switch');
-    button.textContent = 'START';
-    button.disabled = true;
-
-    parent.appendChild(label);
-    parent.appendChild(status);
-    parent.appendChild(button);
-
-    let mainSwitch = {label: label, statusElem: status, button: button};
-    mainSwitch.settingsKey = 'plunderMainSwitch';
-    mainSwitch.settingsValueDefault = false;
-    mainSwitch.settingsValue = mainSwitch.settingsValueDefault;
-    mainSwitch.isRunning = function () {
-        return mainSwitch.settingsValue
+                resolve(result); //inspired by https://stackoverflow.com/a/59441208/7684041
+            });
+        })
     }
-    mainSwitch.setStatus = function (isRunning) {
-        if (isRunning) {
-            mainSwitch.statusElem.textContent = '🟢';
-            mainSwitch.button.textContent = 'STOP';
-        } else {
-            mainSwitch.statusElem.textContent = '⬤';
-            mainSwitch.button.textContent = 'START';
+
+    function saveOptionState(option) {
+        chrome.storage.local.set({[option.settingsKey]: option.settingsValue}) //[key] -> use key's value as the key, not the variable name ("key")
+    }
+
+    function createWatchdogMainSwitch(parent) {
+        let label = document.createElement('label')
+        label.textContent = 'Watchdog status:'
+        label.setAttribute('class', 'qol-plunder-main-switch')
+
+        let status = document.createElement('span')
+        status.textContent = '⏾'
+        status.setAttribute('class', 'qol-plunder-main-switch')
+
+        let button = document.createElement('button');
+        button.setAttribute('type', 'button');
+        button.setAttribute('class', 'qol-plunder-main-switch');
+        button.textContent = 'START';
+        button.disabled = true;
+
+        parent.appendChild(label);
+        parent.appendChild(status);
+        parent.appendChild(button);
+
+        let mainSwitch = {label: label, statusElem: status, button: button};
+        mainSwitch.settingsKey = 'plunderMainSwitch';
+        mainSwitch.settingsValueDefault = false;
+        mainSwitch.settingsValue = mainSwitch.settingsValueDefault;
+        mainSwitch.isRunning = function () {
+            return mainSwitch.settingsValue
         }
+        mainSwitch.setStatus = function (isRunning) {
+            if (isRunning) {
+                mainSwitch.statusElem.textContent = '🟢';
+                mainSwitch.button.textContent = 'STOP';
+            } else {
+                mainSwitch.statusElem.textContent = '⬤';
+                mainSwitch.button.textContent = 'START';
+            }
+        }
+
+        return mainSwitch
     }
 
-    return mainSwitch
-}
+    function createWatchdogOptionCheckbox(parent, name, css_class, id) {
+        let checkbox = document.createElement('input');
+        checkbox.setAttribute('type', 'checkbox');
+        checkbox.setAttribute('id', id);
+        checkbox.setAttribute('class', css_class);
+        checkbox.disabled = true;
+        let label = document.createElement('label');
+        label.textContent = name
+        label.setAttribute('for', id)
+        label.setAttribute('class', css_class)
+        parent.appendChild(label);
+        parent.appendChild(checkbox);
 
-function createWatchdogOptionCheckbox(parent, name, css_class, id) {
-    let checkbox = document.createElement('input');
-    checkbox.setAttribute('type', 'checkbox');
-    checkbox.setAttribute('id', id);
-    checkbox.setAttribute('class', css_class);
-    checkbox.disabled = true;
-    let label = document.createElement('label');
-    label.textContent = name
-    label.setAttribute('for', id)
-    label.setAttribute('class', css_class)
-    parent.appendChild(label);
-    parent.appendChild(checkbox);
+        let toggle = {checkbox: checkbox, label: label};
+        toggle.settingsKey = `plunder${name}Checkbox`;
+        toggle.settingsValueDefault = false;
+        toggle.settingsValue = toggle.settingsValueDefault; //init default, real value will be later loaded from local config ASAP
 
-    let toggle = {checkbox: checkbox, label: label};
-    toggle.settingsKey = `plunder${name}Checkbox`;
-    toggle.settingsValueDefault = false;
-    toggle.settingsValue = toggle.settingsValueDefault; //init default, real value will be later loaded from local config ASAP
+        //save checkbox state to storage on change and update its value in the option object
+        toggle.checkbox.addEventListener('change', function () {
+            toggle.settingsValue = toggle.checkbox.checked;
+            saveOptionState(toggle);
+        })
 
-    //save checkbox state to storage on change and update its value in the option object
-    toggle.checkbox.addEventListener('change', function () {
-        toggle.settingsValue = toggle.checkbox.checked;
-        saveOptionState(toggle);
-    })
-
-    return toggle
+        return toggle
+    }
 }
