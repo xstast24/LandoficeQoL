@@ -367,12 +367,6 @@ function tweak_plunderWatchdog() {
             for (let addButton of document.getElementsByClassName('qol-plunder-add-target')) {addButton.disabled = false}
             for (let rmButton of document.getElementsByClassName('qol-plunder-remove-target')) {rmButton.disabled = false}
 
-            //this happens after page is opened
-            if (mainSwitch.settingsValue === true) {
-                nextUpdateTimeout = SECOND
-                scheduleNextUpdate()
-            } //else - watchdog is off -> do nothing
-
             //this happens if main switch button is clicked
             mainSwitch.button.addEventListener('click', function () {
                 mainSwitch.settingsValue = !mainSwitch.settingsValue;
@@ -381,16 +375,25 @@ function tweak_plunderWatchdog() {
                 if (mainSwitch.settingsValue === true) {
                     nextUpdateTimeout = SECOND
                     scheduleNextUpdate()
+                    initAudioEngine() //needed to play sound alert later
                 } else {
                     updateStatusArea.nextUpdateTime.textContent = '-'
                     clearAllTimeouts()
                 }
             })
+
+            //This happens after page is opened.
+            // If watchdog is running, stop it, so user must manually start it:
+            // --> avoid incidental attacks on places from previous sessions with different clans
+            // --> needed to init audio engine (must be run from user action like click)
+            if (mainSwitch.settingsValue === true) {
+                mainSwitch.button.click() //STOP
+                clearAllTimeouts() //not needed (already done in stop action), just to be 140% sure if anything changes in future etc.
+            } //else - watchdog is off -> do nothing
         })
 
     function update () {
         //TODO places attribute expectedTime, common var with lastUpdate time for monitoring to check real time intervals?
-
         updateStatusArea.setStatusLoading()
         fetch('http://heaven.landofice.com/plunder')
             .then(result => {
@@ -430,7 +433,11 @@ function tweak_plunderWatchdog() {
                         }
                         //SHOW ALERT
                         if (showAlert.checkbox.checked) {
-                            alert(`${target.name} is ready to attack!`);
+                            //beep 3 times
+                            beep(100).then(r => {return sleep(100)}).then(r => {return beep(100)}).then(r => {return sleep(100)}).then(r => {return beep(100)})
+                                //show alert (can't show before beep, cos alert is blocking)
+                                .then(r => {alert(`${target.name} is ready to attack!`)})
+                                .catch(err => {console.error('Alert not shown! Probably BEEP failed sooner: ', err)})
                         }
                         //keep long interval (so refresh doesn't interfere with attacks, or alert doesn't spam user when trying to attack manually)
                     } else if (target.status() === plunderStates.lessThan30Min) {
@@ -485,7 +492,6 @@ function tweak_plunderWatchdog() {
     }
 
     function scheduleNextUpdate() {
-        clearAllTimeouts();
         setTimeout(update, nextUpdateTimeout);
         updateStatusArea.setNextUpdateTime(nextUpdateTimeout); //reflect in UI, so player can see it
         console.log(`Scheduled next update - in ${nextUpdateTimeout/1000} s`);
