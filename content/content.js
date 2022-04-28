@@ -679,7 +679,7 @@ function tweak_plunderWatchdog() {
         //TODO fancy loading gif? let status = document.createElement('img'); status.setAttribute('src', chrome.runtime.getURL('data/loading_circle32.gif'))
         let time = document.createElement('span')
         time.setAttribute('class', 'qol-plunder-update-status')
-        time.textContent = new Date().toLocaleTimeString();
+        time.textContent = new Date().toLocaleTimeString([], {hour12: false});
         let nextUpdate = document.createElement('label');
         nextUpdate.textContent = 'Next update:'
         nextUpdate.setAttribute('class', 'qol-plunder-update-status')
@@ -697,19 +697,19 @@ function tweak_plunderWatchdog() {
         updateStatusArea.setNextUpdateTime = function (nextUpdateTimeoutMs) {
             let currentDate = new Date();
             currentDate.setMilliseconds(currentDate.getMilliseconds()+nextUpdateTimeoutMs);
-            updateStatusArea.nextUpdateTime.textContent = currentDate.toLocaleTimeString()
+            updateStatusArea.nextUpdateTime.textContent = currentDate.toLocaleTimeString([], {hour12: false})
         };
         updateStatusArea.setStatusSuccess = function () {
             updateStatusArea.status.textContent = '✅';
-            time.textContent = new Date().toLocaleTimeString()
+            time.textContent = new Date().toLocaleTimeString([], {hour12: false})
         };
         updateStatusArea.setStatusFail = function () {
             updateStatusArea.status.textContent = '❌';
-            time.textContent = new Date().toLocaleTimeString()
+            time.textContent = new Date().toLocaleTimeString([], {hour12: false})
         };
         updateStatusArea.setStatusLoading = function () {
             updateStatusArea.status.textContent = '⏳';
-            time.textContent = new Date().toLocaleTimeString()
+            time.textContent = new Date().toLocaleTimeString([], {hour12: false})
         };
         return updateStatusArea
     }
