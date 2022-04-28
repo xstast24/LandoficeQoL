@@ -89,9 +89,13 @@
         <label class="settingSwitch" for="plunderWatchdog">
             <input id="plunderWatchdog" type="checkbox">
             <span class="tooltipOnHover">
-                Plunder options: TODO
+                Plunder watchdog: Automatický útok / upozornění / (TODO) monitorování času
                 <span class="tooltipTextAbove">
-                    TODO auto refresh, alert, auto attack?
+                    V plenění se objeví tabulka, kde je možné vybrat cíle a zapnout watchdog (automatické obnovování plenění na pozadí).
+                    Hráč může vybrat "monitoring" - hlídá změny statusu u míst a vypisuje u nich co nejpřesnější čas, kdy bude místo připraveno k útoku.
+                    Nebo "alert" - zobrazí alert a zvukové upozornění, když je místo ready, aby hráče upozornil, i když dělá něco jiného.
+                    Nebo "auto attack" - automaticky zaútočí na první místo z listu cílů, které bude ready.
+                    Obnovování probíhá v intervalech "short interval", pokud některému z cílů zbývá méně než 30 minut. Pokud ne, tak "long interval".
                 </span>
             </span>
         </label>

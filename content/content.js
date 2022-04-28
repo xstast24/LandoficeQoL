@@ -321,7 +321,7 @@ function tweak_plunderWatchdog() {
 
     const SECOND = 1000; //ms
     const MINUTE = 60000; //ms
-    let updateIntervalLong = 10*SECOND; //in ms //TODO MINUTE
+    let updateIntervalLong = MINUTE; //in ms
     let updateIntervalShort = 2*SECOND; //in ms
     let nextUpdateTimeout = SECOND; //first update watchdog after 1s to quickly update basic time info; later this var is modified dynamically as needed
 
