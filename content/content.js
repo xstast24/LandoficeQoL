@@ -321,7 +321,7 @@ function tweak_plunderWatchdog() {
 
     const SECOND = 1000; //ms
     const MINUTE = 60000; //ms
-    let updateIntervalLong = MINUTE; //in ms
+    let updateIntervalLong = 10*SECOND; //in ms //TODO MINUTE
     let updateIntervalShort = 2*SECOND; //in ms
     let nextUpdateTimeout = SECOND; //first update watchdog after 1s to quickly update basic time info; later this var is modified dynamically as needed
 
@@ -452,7 +452,7 @@ function tweak_plunderWatchdog() {
     }
 
     function attackPlace(place) {
-        let url = place.attackElem.getAttribute('href'); //example http://heaven.landofice.com/utok.php?utok=pleneni_13
+        let url = place.attackElem().getAttribute('href'); //example http://heaven.landofice.com/utok.php?utok=pleneni_13
         fetch(url)
             .then(result => {
                 // TODO add handling of http://heaven.landofice.com/nogame/error.php?err=attack-none "bitva nepristupna" - will return OK or FAIL??
@@ -493,8 +493,8 @@ function tweak_plunderWatchdog() {
         //replace current place info (status & attack) with the new place info (to reflect changes in UI)
         for (let i = 0; i < oldPlaces.length ; i++) {
             let oldPlace = oldPlaces[i]; let newPlace = newPlaces[i];
-            oldPlace.replaceStatusElem(newPlace.statusElem);
-            oldPlace.replaceAttackElem(newPlace.attackElem);
+            oldPlace.replaceStatusElem(newPlace.statusElem());
+            oldPlace.replaceAttackElem(newPlace.attackElem());
             oldPlace.replaceSpecialMessage(newPlace.specialMessage());
         }
     }
@@ -523,12 +523,13 @@ function tweak_plunderWatchdog() {
                 name: placeContainer.getElementsByTagName('h4').item(0).textContent,
                 containerElem: placeContainer,
                 bodyContainerElem: placeContainer.getElementsByClassName('zmerchspodek').item(0), //div with all info (e.g. status), except the name
-                attackElem: placeContainer.getElementsByTagName('a').item(0), //if attack on cooldown -> null
-                statusElem: placeContainer.getElementsByTagName('i').item(1), //if attack ready -> no status -> null
             }
+            //must find attack/status/speciaMsg dynamically, cos static assignment on creation would not work later (after the elems got replaced by updated status/msg)
+            p.attackElem = function () {return p.bodyContainerElem.getElementsByTagName('a').item(0)} //if attack on cooldown -> null
+            p.statusElem = function () {return p.bodyContainerElem.getElementsByTagName('i').item(1)} //if attack ready -> no status -> null
             //there is either attackElem, statusElem or special message (army not ready/place under construction/...)
             p.specialMessage = function () {
-                if (p.attackElem || p.statusElem) return null;
+                if (p.attackElem() || p.statusElem()) return null;
                 return p.bodyContainerElem.lastChild.textContent; //message is just a simple text (no element, no tag) at the end of body container
             };
             p.replaceSpecialMessage = function (newSpecialMsg) {
@@ -546,35 +547,37 @@ function tweak_plunderWatchdog() {
             };
             p.replaceStatusElem = function(newStatusElem) {
                 if (newStatusElem) {
-                    console.log('REPLACING STATUS - removing elem: ', p.statusElem, 'NEW ELEM', newStatusElem)
-                    if (p.statusElem) {p.bodyContainerElem.replaceChild(newStatusElem, p.statusElem);}
+                    console.log('REPLACING STATUS - removing ORIG STATIC elem: ', p.statusElem(), 'NEW ELEM', newStatusElem)
+                    console.log('REPLACING STATUS - removing ORIG DYNAMIC elem', p.bodyContainerElem.getElementsByTagName('i').item(1))
+                    console.log('REPLACING STATUS - container p: ', p, 'id: ', p)
+                    console.log('REPLACING STATUS - parent:', newStatusElem.parentElement)
+
+                    if (p.statusElem()) {p.bodyContainerElem.replaceChild(newStatusElem, p.statusElem());}
                     else {
                         if (p.specialMessage()) p.replaceSpecialMessage('');
                         p.createStatusElem(newStatusElem.textContent)
                     }
                 } else {
-                    console.log('REPLACING STATUS - removing elem: ', p.statusElem)
-                    if (p.statusElem) {p.bodyContainerElem.removeChild(p.statusElem)}
+                    console.log('REPLACING STATUS - removing elem: ', p.statusElem(), 'NEW ELEM', newStatusElem, 'ORIG elem', p.bodyContainerElem.getElementsByTagName('i').item(1))
+                    if (p.statusElem()) {p.bodyContainerElem.removeChild(p.statusElem())}
                 }
-                p.statusElem = newStatusElem
             };
             p.replaceAttackElem = function(newAttackElem) {
                 if (newAttackElem) {
-                    if (p.attackElem) {p.bodyContainerElem.replaceChild(newAttackElem, p.attackElem);}
+                    if (p.attackElem()) {p.bodyContainerElem.replaceChild(newAttackElem, p.attackElem());}
                     else {
                         if (p.specialMessage()) p.replaceSpecialMessage('');
                         p.bodyContainerElem.appendChild(newAttackElem)
                     }
                 } else {
-                    if (p.attackElem) {p.bodyContainerElem.removeChild(p.attackElem)}
+                    if (p.attackElem()) {p.bodyContainerElem.removeChild(p.attackElem())}
                 }
-                p.attackElem = newAttackElem
             };
             p.status = function () {
-                if (p.statusElem) {return p.statusElem.textContent}
+                if (p.statusElem()) {return p.statusElem().textContent}
                 else {return plunderStates.attackReady}
             };
-            p.isAttackReady = function () {return (p.attackElem !== null)};
+            p.isAttackReady = function () {return (p.attackElem() !== null)};
             plunderPlaces.push(p);
         }
         return plunderPlaces
