@@ -141,3 +141,42 @@ function getRandomInt(min, max) {
     max = Math.floor(max);
     return Math.floor(Math.random() * (max - min + 1)) + min;
 }
+
+/**
+ * Initialize audio engine. Must be called within a user action, e.g. click listener.
+ * Inspiration: https://stackoverflow.com/a/41077092/7684041, https://stackoverflow.com/a/33723682/7684041
+ * */
+function initAudioEngine() {
+    window.globalAudioContext = new window.AudioContext();
+    window.globalAudioContext.gainNode = window.globalAudioContext.createGain(); //https://developer.mozilla.org/en-US/docs/Web/API/GainNode
+    window.globalAudioContext.gainNode.connect(window.globalAudioContext.destination);
+    window.globalAudioContext.oscillator = window.globalAudioContext.createOscillator(); //https://developer.mozilla.org/en-US/docs/Web/API/OscillatorNode
+    window.globalAudioContext.oscillator.start()
+    console.log('AUDIO ENGINE INIT DONE')
+}
+
+/**
+ * Play a sound with defined params. Returns a promise.
+ * duration: [ms] how long to play the sound
+ * volume: [%] 0-100 where 100 = loudest (really loud)
+ * type: style of the sound - sine, triangle, square, sawtooth
+ * frequency: [MHz] frequency of the tone, usually between 40-6000, e.g. 440 is middle-A note
+ * */
+function beep(duration = 100, frequency = 440, volume = 50, type = 'square') {
+    if (!window.globalAudioContext) {
+        console.error('Before playing beep sound, audio engine must be initialized by initAudioEngine(), must be called within user action like click!')
+    }
+    return new Promise((resolve, reject) => {
+        let audioContext = window.globalAudioContext ? window.globalAudioContext : reject('Audio engine not initialized, see initAudioEngine()');
+        audioContext.gainNode.gain.value = volume;
+        audioContext.oscillator.frequency.value = frequency;
+        audioContext.oscillator.type = type;
+        //start sound
+        audioContext.oscillator.connect(audioContext.destination);
+        //stop sound
+        setTimeout(function () {
+            audioContext.oscillator.disconnect();
+            resolve();
+        }, duration)
+    })
+}
