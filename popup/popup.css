@@ -63,8 +63,8 @@ body {
     position: absolute;
     z-index: 1;
     bottom: 125%;
-    left: 50%;
-    margin-left: -60px;
+    left: 1%; /*how much margin from left side (higher = tooltip displayed more to the right side)*/
+    /*margin-left: -60px;*/
     opacity: 0;
     transition: opacity 0.3s;
 }
