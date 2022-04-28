@@ -346,6 +346,8 @@ function tweak_plunderWatchdog() {
     controlSection.appendChild(document.createElement('br'))
     let updateStatusArea = createUpdateStatusArea(controlSection);
     controlSection.appendChild(document.createElement('br'))
+    let attackInfoArea = createAttackInfoArea(controlSection);
+    controlSection.appendChild(document.createElement('br'))
     createButtonsToAddOrRemoveTargets();
 
     let options = [mainSwitch, targets, monitoring, showAlert, autoAttack];
@@ -360,17 +362,18 @@ function tweak_plunderWatchdog() {
             targets.refreshTargetsList()
             //config loaded -> enable controls, so player can interact with them
             mainSwitch.button.disabled = false;
+            targets.clearButton.disabled = false;
             for (let checkbox of [monitoring, showAlert, autoAttack]) {checkbox.checkbox.disabled = false}
             for (let addButton of document.getElementsByClassName('qol-plunder-add-target')) {addButton.disabled = false}
             for (let rmButton of document.getElementsByClassName('qol-plunder-remove-target')) {rmButton.disabled = false}
 
-            //TODO this happens after page is opened
+            //this happens after page is opened
             if (mainSwitch.settingsValue === true) {
                 nextUpdateTimeout = SECOND
                 scheduleNextUpdate()
             } //else - watchdog is off -> do nothing
 
-            //TODO this happens if main switch button is clicked
+            //this happens if main switch button is clicked
             mainSwitch.button.addEventListener('click', function () {
                 mainSwitch.settingsValue = !mainSwitch.settingsValue;
                 saveOptionState(mainSwitch);
@@ -386,11 +389,7 @@ function tweak_plunderWatchdog() {
         })
 
     function update () {
-        //TODO targets by ID
-        //TODO places attribute statusInfo, expectedTime
-        //TODO common var with lastUpdate time, timeoutInterval var which will be calculated in some func and set later in update
-        //TODO set loading animation and reset stautus after end
-        clearAllTimeouts() //TODO rm later, now is to not spam LoI by debugging stuff
+        //TODO places attribute expectedTime, common var with lastUpdate time for monitoring to check real time intervals?
 
         updateStatusArea.setStatusLoading()
         fetch('http://heaven.landofice.com/plunder')
@@ -472,13 +471,16 @@ function tweak_plunderWatchdog() {
                     .then(result => {
                         if (result.ok) {
                             console.log(`Auto attack on "${place.name}" - success B-)`)
+                            attackInfoArea.setAttackStatus(place, true)
                         } else {
                             console.error(`Auto attack on "${place.name}" failed on submitting attack form! Server error or somebody was faster?`);
+                            attackInfoArea.setAttackStatus(place, false)
                         }
                     })
             })
             .catch(error => {
                 console.error(`Auto attack on "${place.name}" failed! Maybe network error? Error: `, error);
+                attackInfoArea.setAttackStatus(place, false)
             })
     }
 
@@ -500,9 +502,7 @@ function tweak_plunderWatchdog() {
     }
 
     console.log(`Tweak "${SETTINGS_KEYS.plunderWatchdog}": Activated`);
-    //TODO by default DISABLE all plunder settings, until main switch state is loaded - it will be enabled in there, so everything is loaded correctly
-    // TODO this is to ensure all settings are loaded
-    // TODO timers check the real time, cos e.g. PC goes to sleep it is inaccurate https://stackoverflow.com/a/41507793/7684041
+    // TODO monitoring - timers check the real time cos e.g. PC goes to sleep it is inaccurate https://stackoverflow.com/a/41507793/7684041
     //TODO move outside functions to this scope, no need to pass params (still should anyway), can customise them maybe better though
 
     const plunderStates = {
@@ -547,18 +547,12 @@ function tweak_plunderWatchdog() {
             };
             p.replaceStatusElem = function(newStatusElem) {
                 if (newStatusElem) {
-                    console.log('REPLACING STATUS - removing ORIG STATIC elem: ', p.statusElem(), 'NEW ELEM', newStatusElem)
-                    console.log('REPLACING STATUS - removing ORIG DYNAMIC elem', p.bodyContainerElem.getElementsByTagName('i').item(1))
-                    console.log('REPLACING STATUS - container p: ', p, 'id: ', p)
-                    console.log('REPLACING STATUS - parent:', newStatusElem.parentElement)
-
                     if (p.statusElem()) {p.bodyContainerElem.replaceChild(newStatusElem, p.statusElem());}
                     else {
                         if (p.specialMessage()) p.replaceSpecialMessage('');
                         p.createStatusElem(newStatusElem.textContent)
                     }
                 } else {
-                    console.log('REPLACING STATUS - removing elem: ', p.statusElem(), 'NEW ELEM', newStatusElem, 'ORIG elem', p.bodyContainerElem.getElementsByTagName('i').item(1))
                     if (p.statusElem()) {p.bodyContainerElem.removeChild(p.statusElem())}
                 }
             };
@@ -614,10 +608,16 @@ function tweak_plunderWatchdog() {
         let list = document.createElement('span')
         list.textContent = 'None'
         list.setAttribute('class', 'qol-plunder-target-list')
+        let clearButton = document.createElement('button')
+        clearButton.textContent = 'Clear'
+        clearButton.setAttribute('type', 'button');
+        clearButton.setAttribute('class', 'qol-plunder-target-list')
+        clearButton.disabled = true;
         parent.appendChild(label)
         parent.appendChild(list)
+        parent.appendChild(clearButton)
 
-        let targets = {labelElem: label, listElem: list};
+        let targets = {labelElem: label, listElem: list, clearButton: clearButton};
         targets.settingsKey = 'plunderTargetList';
         targets.settingsValueDefault = [];
         targets.settingsValue = targets.settingsValueDefault;
@@ -642,7 +642,31 @@ function tweak_plunderWatchdog() {
                 targets.refreshTargetsList();
             }
         }
+        clearButton.addEventListener('click', function () {
+            targets.settingsValue = targets.settingsValueDefault;
+            saveOptionState(targets);
+            targets.refreshTargetsList();
+        })
         return targets
+    }
+
+    function createAttackInfoArea(parent) {
+        let attackLabel = document.createElement('label')
+        attackLabel.textContent = 'Last attack status:'
+        attackLabel.setAttribute('class', 'qol-plunder-attack-status')
+        let attackStatus = document.createElement('label')
+        attackStatus.textContent = '-'
+        attackStatus.setAttribute('class', 'qol-plunder-attack-status')
+        parent.appendChild(attackLabel)
+        parent.appendChild(attackStatus)
+
+        let attackInfoArea = {attackLabel: attackLabel, attackStatus: attackStatus}
+        attackInfoArea.setAttackStatus = function (place, attackSucceeded) {
+            let state = attackSucceeded ? '✅' : '❌'
+            let time = new Date().toLocaleTimeString([], {hour12: false})
+            attackInfoArea.attackStatus.textContent = `${state} ${place.name}  ${time}`
+        }
+        return attackInfoArea
     }
 
     function createUpdateStatusArea(parent) {

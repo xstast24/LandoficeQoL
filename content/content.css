@@ -50,6 +50,11 @@ button.qol-plunder-main-switch {
     margin-bottom: 20px;
 }
 
+.qol-plunder-attack-status {
+    margin: 5px;
+    margin-bottom: 20px;
+}
+
 button.qol-plunder-add-target {
     margin-right: 10px;
     padding: 1px;
