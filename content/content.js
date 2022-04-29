@@ -430,6 +430,7 @@ function tweak_plunderWatchdog() {
                         //ATTACK TARGET
                         if (autoAttack.checkbox.checked) {
                             attackPlace(target);
+                            nextUpdateTimeout = getRandomInt(updateIntervalLong-5*SECOND, updateIntervalLong+5*SECOND);
                             break;
                         }
                         //SHOW ALERT
@@ -439,6 +440,8 @@ function tweak_plunderWatchdog() {
                                 //show alert (can't show before beep, cos alert is blocking)
                                 .then(r => {alert(`${target.name} is ready to attack!`)})
                                 .catch(err => {console.error('Alert not shown! Probably BEEP failed sooner: ', err)})
+                            nextUpdateTimeout = getRandomInt(updateIntervalLong-5*SECOND, updateIntervalLong+5*SECOND);
+                            break;
                         }
                         //keep long interval (so refresh doesn't interfere with attacks, or alert doesn't spam user when trying to attack manually)
                     } else if (target.status() === plunderStates.lessThan30Min) {
