@@ -185,3 +185,24 @@ function beep(duration = 100, frequency = 440, volume = 0.5, type = 'square') {
         }, duration)
     })
 }
+
+/**
+ * Get value from a logarithmic scale (with given min/max value) that corresponds to given linear value from interval [0-1], https://stackoverflow.com/a/846249/7684041
+ * value: [0-1] the position on the logarithmic scale that we want (0 = minValue, 1 = maxValue)
+ * minValue, maxValue: min/max value of the logarithmic scale
+ * */
+function linearValueToLogarithmicScale(linValue, minLogValue, maxLogValue) {
+    // The result should be between minValue an maxValue
+    let minV = Math.log(minLogValue);
+    let maxV = Math.log(maxLogValue);
+    let scale = maxV - minV; // calculate adjustment factor
+    return Math.exp(minV + scale * linValue);
+}
+
+/**Return value from linear interval [0-1] corresponding to given log scale. Inverse to linearValueToLofarithmicScale(), https://stackoverflow.com/a/846249/7684041*/
+function logarithmicValueToLinearScale(logValue, minLogValue, maxLogValue) {
+    let minV = Math.log(minLogValue);
+    let maxV = Math.log(maxLogValue);
+    let scale = maxV - minV;
+    return (Math.log(logValue)-minV) / scale;
+}
