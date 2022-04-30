@@ -326,35 +326,33 @@ function tweak_plunderWatchdog() {
     let nextUpdateTimeout = SECOND; //first update watchdog after 1s to quickly update basic time info; later this var is modified dynamically as needed
 
     //CONTROL SECTION - create tweak control section above the plundering (right below the main header)
-    let mainHeader = getElementByText('Plenění', document, 'h3', true);
-    let controlSection = document.createElement('div');
-    mainHeader.insertAdjacentElement('afterend', controlSection);
-    let controlSectionTitle = document.createElement('h4');
-    controlSectionTitle.textContent = 'Plunder watchdog control section';
-    controlSection.appendChild(controlSectionTitle);
-
+    let controlSection = createControlSection();
+    //LEFT SIDE
     //checkboxes/buttons are by default disabled, only after settings are loaded from storage (later), they can be set to correct values and enabled
-    let monitoring = createWatchdogOptionCheckbox(controlSection, 'MonitoringTODO', 'qol-plunder-checkbox', 'monitoringToggle');
-    let showAlert = createWatchdogOptionCheckbox(controlSection, 'Alert', 'qol-plunder-checkbox', 'alertToggle');
-    let autoAttack = createWatchdogOptionCheckbox(controlSection, 'AutoAttack', 'qol-plunder-checkbox', 'autoAttackToggle');
-    controlSection.appendChild(document.createElement('br'))
-    let targets = createWatchdogTargetList(controlSection);
-    controlSection.appendChild(document.createElement('br'))
-    let mainSwitch = createWatchdogMainSwitch(controlSection);
-    controlSection.appendChild(document.createElement('br'))
-    let timeIntervalSelectors = createTimeIntervalSelectors(controlSection); //TODO currently only shows hardcoded intervals, make selectors, so user can choose
-    controlSection.appendChild(document.createElement('br'))
-    let updateStatusArea = createUpdateStatusArea(controlSection);
-    controlSection.appendChild(document.createElement('br'))
-    let attackInfoArea = createAttackInfoArea(controlSection);
-    controlSection.appendChild(document.createElement('br'))
+    let monitoring = createWatchdogOptionCheckbox(controlSection.leftSide, 'MonitoringTODO', 'qol-plunder-checkbox', 'monitoringToggle');
+    let showAlert = createWatchdogOptionCheckbox(controlSection.leftSide, 'Alert', 'qol-plunder-checkbox', 'alertToggle');
+    let autoAttack = createWatchdogOptionCheckbox(controlSection.leftSide, 'AutoAttack', 'qol-plunder-checkbox', 'autoAttackToggle');
+    controlSection.leftSide.appendChild(document.createElement('br'))
+    let targets = createWatchdogTargetList(controlSection.leftSide);
+    controlSection.leftSide.appendChild(document.createElement('br'))
+    let mainSwitch = createWatchdogMainSwitch(controlSection.leftSide);
+    controlSection.leftSide.appendChild(document.createElement('br'))
+    let timeIntervalSelectors = createTimeIntervalSelectors(controlSection.leftSide); //TODO currently only shows hardcoded intervals, make selectors, so user can choose
+    controlSection.leftSide.appendChild(document.createElement('br'))
+    let updateStatusArea = createUpdateStatusArea(controlSection.leftSide);
+    controlSection.leftSide.appendChild(document.createElement('br'))
+    let attackInfoArea = createAttackInfoArea(controlSection.leftSide);
+    controlSection.leftSide.appendChild(document.createElement('br'))
     createButtonsToAddOrRemoveTargets();
+    //RIGHT side
+    let alertSettings = createAlertSettings(controlSection.rightSide);
 
     let options = [mainSwitch, targets, monitoring, showAlert, autoAttack];
     let plunderPlaces = getAllPlunderPlaces(document);
 
     loadSettings(options) //load states of the plunder settings
         .then(result => {
+            alertSettings.loadSettings();
             monitoring.checkbox.checked = monitoring.settingsValue;
             showAlert.checkbox.checked = showAlert.settingsValue;
             autoAttack.checkbox.checked = autoAttack.settingsValue;
@@ -435,10 +433,8 @@ function tweak_plunderWatchdog() {
                         }
                         //SHOW ALERT
                         if (showAlert.checkbox.checked) {
-                            //beep 3 times
-                            beep(100).then(r => {return sleep(100)}).then(r => {return beep(100)}).then(r => {return sleep(100)}).then(r => {return beep(100)})
-                                //show alert (can't show before beep, cos alert is blocking)
-                                .then(r => {alert(`${target.name} is ready to attack!`)})
+                            playDoubleBeep(alertSettings)
+                                .then(r => {alert(`${target.name} is ready to attack!`)}) //can't show alert before beep, cos alert blocks everything
                                 .catch(err => {console.error('Alert not shown! Probably BEEP failed sooner: ', err)})
                             nextUpdateTimeout = getRandomInt(updateIntervalLong-5*SECOND, updateIntervalLong+5*SECOND);
                             break;
@@ -727,10 +723,10 @@ function tweak_plunderWatchdog() {
     function createTimeIntervalSelectors(parent) {
         //TODO currently only hardcoded labels, make it selectable and save/load settings
         let longIntervalLabel = document.createElement('label');
-        longIntervalLabel.textContent = `Long interval (over 30 min): ${updateIntervalLong/1000} s`
+        longIntervalLabel.textContent = `Long interval (>30 min): ${updateIntervalLong/1000} s`
         longIntervalLabel.setAttribute('class', 'qol-plunder-update-time-selector')
         let shortIntervalLabel = document.createElement('label');
-        shortIntervalLabel.textContent = `Short interval (less than 30 min): ${updateIntervalShort/1000} s`
+        shortIntervalLabel.textContent = `Short interval (<30 min): ${updateIntervalShort/1000} s`
         shortIntervalLabel.setAttribute('class', 'qol-plunder-update-time-selector')
         parent.appendChild(longIntervalLabel)
         parent.appendChild(shortIntervalLabel)
@@ -822,5 +818,105 @@ function tweak_plunderWatchdog() {
         })
 
         return toggle
+    }
+
+    function createControlSection() {
+        let mainHeader = getElementByText('Plenění', document, 'h3', true);
+        let controlSectionTitle = document.createElement('h4');
+        controlSectionTitle.textContent = 'Plunder watchdog control section';
+        let controlSection = document.createElement('div');
+        controlSection.setAttribute('id', 'qol-plunder-control-section-container')
+        let controlSectionLeft = document.createElement('div');
+        controlSectionLeft.setAttribute('id', 'qol-plunder-control-section-left')
+        let controlSectionRight = document.createElement('div');
+        controlSectionRight.setAttribute('id', 'qol-plunder-control-section-right')
+        mainHeader.insertAdjacentElement('afterend', controlSectionTitle);
+        controlSectionTitle.insertAdjacentElement('afterend', controlSection);
+        controlSection.appendChild(controlSectionLeft);
+        controlSection.appendChild(controlSectionRight);
+        return {mainContainer: controlSection, leftSide: controlSectionLeft, rightSide: controlSectionRight}
+    }
+
+    function createAlertSettings(parent) {
+        let volumeLabel = document.createElement('label')
+        volumeLabel.textContent = 'Alert sound volume:'
+        let volumeSelector = document.createElement('input')
+        volumeSelector.setAttribute('type', 'range')
+        volumeSelector.setAttribute('min', '0')
+        volumeSelector.setAttribute('max', '100')
+        volumeSelector.style.minWidth = '50%';
+        let frequencyLabel = document.createElement('label')
+        frequencyLabel.textContent = 'Alert sound frequency:'
+        let frequencySelector = document.createElement('input')
+        frequencySelector.setAttribute('type', 'range')
+        frequencySelector.setAttribute('min', '0') //will recalculate to Hz later using logarithmic scale
+        frequencySelector.setAttribute('max', '100')
+        frequencySelector.style.minWidth = '50%';
+        let playButton = document.createElement('button')
+        playButton.textContent = 'Play'
+        let saveButton = document.createElement('button')
+        saveButton.textContent = 'Save'
+        parent.appendChild(volumeLabel)
+        parent.appendChild(volumeSelector)
+        parent.appendChild(document.createElement('br'))
+        parent.appendChild(frequencyLabel)
+        parent.appendChild(frequencySelector)
+        parent.appendChild(document.createElement('br'))
+        parent.appendChild(playButton)
+        parent.appendChild(saveButton)
+
+        let alertSettings = {volumeSelector: volumeSelector, frequencySelector: frequencySelector}
+        alertSettings.settingsKey = 'plunderAlertSoundSettings'
+        let minFreq = 65; let maxFreq = 6271; //reasonable range C2-G8 (65-6271 Hz), see all notes https://pages.mtu.edu/~suits/notefreqs.html
+        alertSettings.defaultSettings = [0.5, 440]; //[VOLUME, FREQUENCY]
+        alertSettings.currentSettings = function () {
+            return [
+                parseInt(volumeSelector.value)/100.0, //0-100 --> [0-1]
+                linearValueToLogarithmicScale(frequencySelector.value/100, minFreq, maxFreq).toFixed() //0-100 --> logarithmic frequency Hz
+            ]
+        }
+        alertSettings.volumeValue = function () {return alertSettings.currentSettings()[0]}
+        alertSettings.frequencyValue = function () {return alertSettings.currentSettings()[1]}
+        alertSettings.setSettingsToSelectors = function (settingsArray) {
+            volumeSelector.value = (settingsArray[0] * 100).toFixed().toString(); //[0-1] --> 0-100
+            frequencySelector.value = (logarithmicValueToLinearScale(settingsArray[1], minFreq, maxFreq) * 100).toFixed().toString(); //log freq Hz --> 0-100
+        }
+        alertSettings.saveSettings = function (settingsArray) {
+            chrome.storage.local.set({[alertSettings.settingsKey]: settingsArray}) //[key] -> use key's value as the key, not the variable name ("key")
+        }
+        alertSettings.loadSettings = function () {
+            chrome.storage.local.get(alertSettings.settingsKey, function (result) {
+                if (isEmpty(result) || (alertSettings.defaultSettings.length !== result[alertSettings.settingsKey].length)) {
+                    //first run or config was saved in old version where were fewer/more options -> init default value
+                    alertSettings.saveSettings(alertSettings.defaultSettings);
+                    alertSettings.setSettingsToSelectors(alertSettings.defaultSettings)
+                } else {
+                    alertSettings.setSettingsToSelectors(result[alertSettings.settingsKey]);
+                }
+            });
+        }
+
+        saveButton.addEventListener('click', function () {alertSettings.saveSettings(alertSettings.currentSettings())})
+        playButton.addEventListener('click', function (event) {
+            if (!audioEngineInitialized()) initAudioEngine();
+            playDoubleBeep(alertSettings);
+        })
+        return alertSettings
+    }
+
+    /**Play 2x beep sound with pause [ms] in between. See beep() function description for exact info about parameters.
+     * Audio engine must be first initialized within user action!*/
+    function playDoubleBeep(alertSettings) {
+        const duration = 200; const pause = 100; const type = 'square';
+        const freq = alertSettings.frequencyValue()
+        const volume = alertSettings.volumeValue()
+        return new Promise((resolve, reject) => {
+            if (!audioEngineInitialized()) {console.error('Playing beep failed - audio engine not ready')} //no need to reject here, will be rejected in beep later
+            beep(duration, freq, volume, type)
+                .then(r => {return sleep(pause)})
+                .then(r => {return beep(duration, freq, volume, type)})
+                .then(r => resolve(r))
+                .catch(err => reject(err))
+        })
     }
 }

@@ -1,4 +1,15 @@
 /*PLUNDER WATCHDOG control section style. Btw CSS selector types (class, id, state...) https://www.w3schools.com/css/css_selectors.asp*/
+#qol-plunder-control-section-container {
+    width: 100%;
+    display: flex; /*Flexbox tutorial: https://www.w3schools.com/css/css3_flexbox.asp*/
+}
+#qol-plunder-control-section-left {
+    width: 50%;
+}
+#qol-plunder-control-section-right {
+    width: 50%;
+}
+
 label.qol-plunder-target-list {
     margin: 5px;
     margin-bottom: 20px;
