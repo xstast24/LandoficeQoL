@@ -152,30 +152,35 @@ function initAudioEngine() {
     window.globalAudioContext.gainNode.connect(window.globalAudioContext.destination);
     window.globalAudioContext.oscillator = window.globalAudioContext.createOscillator(); //https://developer.mozilla.org/en-US/docs/Web/API/OscillatorNode
     window.globalAudioContext.oscillator.start()
-    console.log('AUDIO ENGINE INIT DONE')
+}
+
+/**Check if audio engine was initialized, see initAudioEngine() for more info*/
+function audioEngineInitialized() {
+    return window.globalAudioContext ? true : false
 }
 
 /**
  * Play a sound with defined params. Returns a promise.
  * duration: [ms] how long to play the sound
- * volume: [%] 0-100 where 100 = loudest (really loud)
+ * volume: 0-1 where 1 = the loudest
  * type: style of the sound - sine, triangle, square, sawtooth
  * frequency: [MHz] frequency of the tone, usually between 40-6000, e.g. 440 is middle-A note
  * */
-function beep(duration = 100, frequency = 440, volume = 50, type = 'square') {
+function beep(duration = 100, frequency = 440, volume = 0.5, type = 'square') {
     if (!window.globalAudioContext) {
         console.error('Before playing beep sound, audio engine must be initialized by initAudioEngine(), must be called within user action like click!')
     }
     return new Promise((resolve, reject) => {
-        let audioContext = window.globalAudioContext ? window.globalAudioContext : reject('Audio engine not initialized, see initAudioEngine()');
-        audioContext.gainNode.gain.value = volume;
-        audioContext.oscillator.frequency.value = frequency;
-        audioContext.oscillator.type = type;
+        if (!audioEngineInitialized()) reject('Beep - audio engine not initialized! See initAudioEngine()');
+        let audio = window.globalAudioContext
+        audio.gainNode.gain.value = volume;
+        audio.oscillator.frequency.value = frequency;
+        audio.oscillator.type = type;
         //start sound
-        audioContext.oscillator.connect(audioContext.destination);
+        audio.oscillator.connect(audio.gainNode);
         //stop sound
         setTimeout(function () {
-            audioContext.oscillator.disconnect();
+            audio.oscillator.disconnect();
             resolve();
         }, duration)
     })
