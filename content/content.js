@@ -73,6 +73,7 @@ function tweak_quickAttackButton() {
         attackEventLink.insertAdjacentElement('beforebegin', quickAttackButton) //put button before the event link
 
         quickAttackButton.addEventListener('click', function (event) {
+            quickAttackButton.textContent = '⏳';
             let url = attackEventLink.href; //example attack URL 'http://heaven.landofice.com/utok.php?utok=vesnice&'
             fetch(url)
                 .then(result => {
@@ -101,6 +102,7 @@ function tweak_quickAttackButton() {
                         })
                         .then(result => nextTurn()) //play next turn after clearing the attack event
                 })
+                .catch(err => console.error(`Attack failed on ${url}... Reason: `, err))
         })
     }
     console.log(`Tweak "${SETTINGS_KEYS.quickAttackButton}": Activated`);
