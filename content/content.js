@@ -324,7 +324,7 @@ function tweak_plunderWatchdog() {
     const SECOND = 1000; //ms
     const MINUTE = 60000; //ms
     let updateIntervalLong = MINUTE; //in ms
-    let updateIntervalShort = 0.6*SECOND; //in ms
+    let updateIntervalShort = 0.5*SECOND; //in ms
     let nextUpdateTimeout = SECOND; //first update watchdog after 1s to quickly update basic time info; later this var is modified dynamically as needed
 
     //CONTROL SECTION - create tweak control section above the plundering (right below the main header)
@@ -444,7 +444,7 @@ function tweak_plunderWatchdog() {
                         //keep long interval (so refresh doesn't interfere with attacks, or alert doesn't spam user when trying to attack manually)
                     } else if (target.status() === plunderStates.lessThan30Min) {
                         //SET SHORT UPDATE INTERVAL if any target is appearing soon
-                        nextUpdateTimeout = getRandomInt(updateIntervalShort, updateIntervalShort+SECOND);
+                        nextUpdateTimeout = getRandomInt(updateIntervalShort, updateIntervalShort + 0.5*SECOND); //let 0.5s random split, so it is not too regular on BE
                     }
                 }
 
