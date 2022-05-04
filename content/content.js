@@ -326,6 +326,10 @@ function tweak_plunderWatchdog() {
     let updateIntervalLong = MINUTE; //in ms
     let updateIntervalShort = 0.5*SECOND; //in ms
     let nextUpdateTimeout = SECOND; //first update watchdog after 1s to quickly update basic time info; later this var is modified dynamically as needed
+    //give some time between switching from short to long interval, so player can play & attack events (army gets exhausted for a few seconds) while waiting for plunder
+    let gracePeriodBeforeSwitchingToLongInterval = MINUTE;
+    //save time of the last time we noticed that any place is soon ready to attack
+    let placeReadySoonLastDetectionTime = 1; //[ms] 1 means a "long time ago in history"
 
     //CONTROL SECTION - create tweak control section above the plundering (right below the main header)
     let controlSection = createControlSection();
@@ -374,8 +378,8 @@ function tweak_plunderWatchdog() {
                 saveOptionState(mainSwitch);
                 mainSwitch.setStatus(mainSwitch.settingsValue);
                 if (mainSwitch.settingsValue === true) {
-                    nextUpdateTimeout = SECOND
-                    scheduleNextUpdate()
+                    nextUpdateTimeout = updateIntervalShort
+                    scheduleNextUpdate(nextUpdateTimeout)
                     initAudioEngine() //needed to play sound alert later
                 } else {
                     updateStatusArea.nextUpdateTime.textContent = '-'
@@ -423,14 +427,15 @@ function tweak_plunderWatchdog() {
                 updatePlacesWithNewInfo(plunderPlaces, newPlaces);
 
                 //CHECK ALL TARGETS AND DO ACTION IF NEEDED
-                nextUpdateTimeout = getRandomInt(updateIntervalLong-5*SECOND, updateIntervalLong+5*SECOND);
+                let previousUpdateTimeout = nextUpdateTimeout;
+                let nextTimeout = -1; //reset/unset the next update time
                 for (let id of targets.settingsValue) {
                     let target = plunderPlaces[id];
                     if (target.isAttackReady()) {
                         //ATTACK TARGET
                         if (autoAttack.checkbox.checked) {
                             attackPlace(target);
-                            nextUpdateTimeout = getRandomInt(updateIntervalLong-5*SECOND, updateIntervalLong+5*SECOND);
+                            nextTimeout = updateIntervalLong;
                             break;
                         }
                         //SHOW ALERT
@@ -438,24 +443,52 @@ function tweak_plunderWatchdog() {
                             playDoubleBeep(alertSettings)
                                 .then(r => {alert(`${target.name} is ready to attack!`)}) //can't show alert before beep, cos alert blocks everything
                                 .catch(err => {console.error('Alert not shown! Probably BEEP failed sooner: ', err)})
-                            nextUpdateTimeout = getRandomInt(updateIntervalLong-5*SECOND, updateIntervalLong+5*SECOND);
+                            nextTimeout = updateIntervalLong;
                             break;
                         }
                         //keep long interval (so refresh doesn't interfere with attacks, or alert doesn't spam user when trying to attack manually)
                     } else if (target.status() === plunderStates.lessThan30Min) {
                         //SET SHORT UPDATE INTERVAL if any target is appearing soon
-                        nextUpdateTimeout = getRandomInt(updateIntervalShort, updateIntervalShort + 0.5*SECOND); //let 0.5s random split, so it is not too regular on BE
+                        placeReadySoonLastDetectionTime = Date.now();
+                        nextTimeout = updateIntervalShort;
                     }
                 }
 
-                scheduleNextUpdate();
-                updateStatusArea.setStatusSuccess()
+                //update interval not set (no targets found) -> set it now
+                if (nextTimeout === -1) {
+                    if (previousUpdateTimeout === updateIntervalLong) {
+                        //keep the long interval, no problem here
+                        nextTimeout = updateIntervalLong;
+                    } else if (previousUpdateTimeout === updateIntervalShort) {
+                        //Give some grace period while switching to long interval. This is needed to let player play while waiting.
+                        //E.g. can attack events -> getting the army exhausted for a few seconds -> don't set long interval immediately, keep short one for some itme
+                        //E.g. can switch to exhausted clan to help friend's city which is under siege -> can't plunder for a few seconds -> same as above
+                        let timeSinceLastEventWasSeenReady = Date.now() - placeReadySoonLastDetectionTime;
+                        if (timeSinceLastEventWasSeenReady > gracePeriodBeforeSwitchingToLongInterval) {
+                            nextTimeout = updateIntervalLong; //place not seen ready for longer than the grace period -> we can switch to long interval
+                        } else {
+                            nextTimeout = updateIntervalShort; //place not ready for a short while - don't set long interval just yet, wait a bit more
+                        }
+                    } else {console.error('Update interval not equal to short/long interval - this shouldnt happen, weird.'); nextTimeout = updateIntervalShort}
+                }
+
+                //add some random jitter to the time interval, so it is not too regular and can't be detected on backend
+                let randomizedTimeout;
+                if (nextTimeout === updateIntervalLong) {
+                    randomizedTimeout = getRandomInt(updateIntervalLong-5*SECOND, updateIntervalLong+5*SECOND);
+                } else if (nextTimeout === updateIntervalShort) {
+                    randomizedTimeout = getRandomInt(updateIntervalShort, updateIntervalShort + 0.5*SECOND);
+                }
+
+                scheduleNextUpdate(randomizedTimeout);
+                updateStatusArea.setStatusSuccess();
+                nextUpdateTimeout = nextTimeout;
             })
             .catch(error => {
                 console.warn('Update failed - promise returned error (rejected):', error)
                 updateStatusArea.setStatusFail()
                 clearAllTimeouts()
-                scheduleNextUpdate() //next update interval (long/short) is kept same as for the last update
+                scheduleNextUpdate(nextUpdateTimeout) //next update interval (long/short) is kept same as for the last update
             })
     }
 
@@ -493,10 +526,10 @@ function tweak_plunderWatchdog() {
             })
     }
 
-    function scheduleNextUpdate() {
-        setTimeout(update, nextUpdateTimeout);
-        updateStatusArea.setNextUpdateTime(nextUpdateTimeout); //reflect in UI, so player can see it
-        console.log(`Scheduled next update - in ${nextUpdateTimeout/1000} s`);
+    function scheduleNextUpdate(timeout) {
+        setTimeout(update, timeout);
+        updateStatusArea.setNextUpdateTime(timeout); //reflect in UI, so player can see it
+        console.log(`Scheduled next update - in ${timeout/1000} s`);
     }
 
     function updatePlacesWithNewInfo(oldPlaces, newPlaces) {
