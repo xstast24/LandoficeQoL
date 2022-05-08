@@ -10,7 +10,7 @@ chrome.storage.local.get([CONFIG_KEYS.extensionActive], function (result) {
 
 
 /**Check all content tweaks. If turned ON -> apply it. If turned OFF -> ignore it.*/
-function runContentTweaks() {
+async function runContentTweaks() {
     for (const tweak in SETTINGS_KEYS) {
         console.debug(`Tweak "${tweak}": Checking...`);
         chrome.storage.local.get(tweak, function (result) {
@@ -25,7 +25,7 @@ function runContentTweaks() {
 }
 
 /**Add option to sidebar on the main page "Add clan leader to army", so user can simply 1-click it (no need to open army, scroll, add, close...) */
-function tweak_sidebarAddArmyLeaderOption() {
+async function tweak_sidebarAddArmyLeaderOption() {
     if (window.location.pathname !== '/main.php') {
         return
     } //option works only on the main page with sidebar
@@ -52,7 +52,7 @@ function tweak_sidebarAddArmyLeaderOption() {
 }
 
 /**Add quick attack option to all attack events on main page -> 1 click attacks the event and plays the next turn immediately after that*/
-function tweak_quickAttackButton() {
+async function tweak_quickAttackButton() {
     if (window.location.pathname !== '/main.php') {
         return
     } //option works only on the main page with sidebar
@@ -109,7 +109,7 @@ function tweak_quickAttackButton() {
 }
 
 /**Add option "Copy Army" into sidebar on the main page, so user can simply 1-click copy and easily paste into simulator (saves much time) */
-function tweak_sidebarCopyArmyOption() {
+async function tweak_sidebarCopyArmyOption() {
     if (window.location.pathname !== '/main.php') {
         return
     } //option works only on the main page with sidebar
@@ -167,7 +167,7 @@ function tweak_sidebarCopyArmyOption() {
 }
 
 /**Show buttons to quickly switch between all clans directly on the main page*/
-function tweak_clanQuickSwitchButtons() {
+async function tweak_clanQuickSwitchButtons() {
     if (window.location.pathname !== '/main.php') {return} //option works only on the main page with sidebar
 
     let topLeftMenu = document.getElementsByClassName('menu-left').item(0);
@@ -274,7 +274,7 @@ function tweak_clanQuickSwitchButtons() {
 }
 
 /**Vulkan equipment: make sure there is at least 5 equipment for fire mages every round, so it recruits fire mage(s) -> 1 arch mage of fire comes as bonus.*/
-function tweak_vulkanAutoBuyFireMage() {
+async function tweak_vulkanAutoBuyFireMage() {
     if (window.location.pathname !== '/main.php') {return} //option works only on the main page with sidebar
 
     let firemageBuilding = getBuildingByName('Ohnivá Sekta');
@@ -307,7 +307,7 @@ function tweak_vulkanAutoBuyFireMage() {
 }
 
 /**Alert player if soothsayer from Francox sect arrives with a riddle, so player doesn't miss it*/
-function tweak_alertFrancoxSect() {
+async function tweak_alertFrancoxSect() {
     if (window.location.pathname !== '/main.php') {return} //option works only on the main page with sidebar
 
     let turnInfoSection = document.getElementsByClassName('odehraj odehraj-odtah').item(0);
@@ -318,7 +318,7 @@ function tweak_alertFrancoxSect() {
 }
 
 /**Plunder watchdog*/
-function tweak_plunderWatchdog() {
+async function tweak_plunderWatchdog() {
     if (window.location.pathname !== '/plunder') {return} //works only on the plunder page
 
     const SECOND = 1000; //ms

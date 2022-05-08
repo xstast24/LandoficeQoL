@@ -3,20 +3,100 @@
  * Namespace of all background scripts is shared (same applies for content/popup namespaces), so it works.
  * */
 
+/**Get value from local storage for the given 'key'. If key doesn't exist in the storage, return 'default_value' instead.*/
+async function readKeyFromLocalStorage(key, default_value=undefined) {
+    return new Promise((resolve, reject) => {
+        chrome.storage.local.get([key], function (result) {
+            if (result[key] === undefined) {
+                resolve(default_value)
+            } else {
+                resolve(result[key]);
+            }
+        });
+    })
+}
 
-/**Save default configs to chrome storage. Use param 'clearOldStorage'=true to delete old storage data before saving the new data.*/
-function saveDefaultConfigToChromeStorage(clearOldStorage = false) {
-    if (clearOldStorage) {
-        chrome.storage.local.clear();
-        console.log('Cleared Chrome storage')
+/**Save given key-value pair to local storage. Await this function to ensure the config was added*/
+async function saveKeyToLocalStorage(key, value) {
+    return new Promise((resolve, reject) => {
+        chrome.storage.local.set({[key]: value}, function (result) { //[key] -> use key's value as the key, not the variable name ("key")
+            resolve(true)
+        });
+    })
+}
+
+/**Save default configs to chrome storage. Overwrites existing values!*/
+async function saveDefaultConfigToChromeStorage() {
+    return new Promise((resolve, reject) => {
+        chrome.storage.local.set(CONFIG, function () {
+            console.log('Default config saved to local storage');
+            chrome.storage.local.set(SETTINGS, function () {
+                console.log('Default feature settings saved to local storage')
+                resolve(true)
+            });
+        });
+    })
+}
+
+/**Save default config values to chrome storage only if not existing yet (doesn't overwrite any existing values)*/
+async function saveFeatureSettingsToStorageIfMissing() {
+    for (let settingKey in SETTINGS) {
+        let settingValue = await readKeyFromLocalStorage(settingKey, undefined);
+        if (settingValue === undefined) {
+            console.log(`Key "${settingKey}" not found in storage, saving now`)
+            await saveKeyToLocalStorage(settingKey, SETTINGS[settingKey]);
+        }
+    }
+}
+
+/**
+ * Compares two software version numbers (e.g. "1.7.13" or "2.1"). Compare naturally by value (not lexicographically), so e.g. 1.10 is bigger than 1.2.
+ * Letters (like "1.1b") not allowed, only numbers. Inspired by: http://stackoverflow.com/a/6832721
+ * @param {string} v1 The first version to be compared.
+ * @param {string} v2 The second version to be compared.
+ * @param {boolean} zeroExtend true - if one ver has fewer parts than the other, the shorter one is padded with "zero" parts instead of being considered lower/older
+ *                             false - if one ver has fewer parts, it is considered lower/older, e.g. 1.1 > 1, also 1.2.0 > 1.2
+ * @returns {number|NaN} 0 if v1 == v2; negative integer if v1 < v2; positive integer if v1 > v2; NaN if any version has wrong format
+ */
+function versionCompare(v1, v2, zeroExtend=true) {
+    let v1parts = v1.split('.')
+    let v2parts = v2.split('.')
+
+    function isValidPart(x) {
+        return /^\d+$/.test(x);
+    }
+    if (!v1parts.every(isValidPart) || !v2parts.every(isValidPart)) {
+        return NaN;
     }
 
-    chrome.storage.local.set(CONFIG, function () {
-        console.log('Default config initialized in local storage')
-    });
-    chrome.storage.local.set(SETTINGS, function () {
-        console.log('Default feature settings initialized in local storage')
-    });
+    v1parts = v1parts.map(Number);
+    v2parts = v2parts.map(Number);
+    if (zeroExtend) {
+        while (v1parts.length < v2parts.length) v1parts.push(0);
+        while (v2parts.length < v1parts.length) v2parts.push(0);
+    }
+
+    for (let i = 0; i < v1parts.length; i++) {
+        if (v2parts.length === i) {
+            return 1; //v2 is shorter than v1 and all previous parts were same -> consider v2 older, v1 newer (it has additional parts)
+        }
+
+        if (v1parts[i] === v2parts[i]) {
+            continue;
+        }
+        else if (v1parts[i] > v2parts[i]) {
+            return 1;
+        }
+        else {
+            return -1;
+        }
+    }
+
+    if (v1parts.length !== v2parts.length) {
+        return -1; //v1 is shorter than v2 and all previous parts were same -> consider v1 older, v2 newer (it has additional parts)
+    }
+
+    return 0;
 }
 
 /**Get just the direct text of given element, not of its children. E.g. <div>directText<red>childText</red></div> returns only "directText"*/
