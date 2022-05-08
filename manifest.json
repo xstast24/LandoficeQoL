@@ -2,7 +2,7 @@
   "manifest_version": 2,
   "name": "Landofice QoL",
   "description": "Provide convenient utils for landofice.com players.",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "author": "Bota007",
   "permissions": [
     "storage",
@@ -26,7 +26,8 @@
         "config.js",
         "common.js",
         "game_common.js",
-        "content/content.js"
+        "content/content.js",
+        "content/plunder_watchdog.js"
       ],
       "css": [
         "content/content.css"
