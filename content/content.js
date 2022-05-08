@@ -11,18 +11,20 @@ chrome.storage.local.get([CONFIG_KEYS.extensionActive], function (result) {
 
 /**Check all content tweaks. If turned ON -> apply it. If turned OFF -> ignore it.*/
 async function runContentTweaks() {
-    for (const tweak in SETTINGS_KEYS) {
-        console.debug(`Tweak "${tweak}": Checking...`);
-        chrome.storage.local.get(tweak, function (result) {
-            if (result[tweak]) {
-                window['tweak_' + tweak](); // run tweak - evaluate dynamically by method name
+    let settingsKeys = Object.keys(SETTINGS_KEYS);
+    chrome.storage.local.get(settingsKeys, function (result) {
+        for (let settingKey in SETTINGS_KEYS) {
+            if (result[settingKey]) {
+                window['tweak_' + settingKey](); // run tweak - evaluate dynamically by method name
                 //further logging should be done in the tweak itself, cos here we don't yet know if the conditions were met
             } else {
-                console.debug(`Tweak "${tweak}": OFF`);
+                console.debug(`Tweak "${settingKey}": OFF`);
             }
-        });
-    }
+        }
+
+    });
 }
+
 
 /**Add option to sidebar on the main page "Add clan leader to army", so user can simply 1-click it (no need to open army, scroll, add, close...) */
 async function tweak_sidebarAddArmyLeaderOption() {
