@@ -116,7 +116,8 @@ async function plunderWatchdog() {
                         //ATTACK TARGET
                         if (autoAttack.checkbox.checked) {
                             attackPlace(target);
-                            nextTimeout = updateIntervalLong;
+                            //sometimes attack fails with err (network, too fast/slow etc.) -> retry quickly (if all goes well, the next retry will be long, no need to worry)
+                            nextTimeout = updateIntervalShort;
                             break;
                         }
                         //SHOW ALERT
