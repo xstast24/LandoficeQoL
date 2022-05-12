@@ -25,6 +25,45 @@ async function runContentTweaks() {
 }
 
 
+/**Main page various UI details*/
+async function tweak_mainPageUiTweaks() {
+    if (window.location.pathname !== '/main.php') {return} //option works only on the main page with sidebar
+
+    //add space between next turn surroundings vs. wasteland (to avoid missclicks and to be easier to quickly click on touchpad)
+    let nextTurnExploreSurroundings = getSidebarOption('Průzkum okolí (1 tah)')
+    if (nextTurnExploreSurroundings) {
+        let emptySpace = document.createElement('li')
+        emptySpace.setAttribute('class', 'empty') //native LoI spaces in sidebar
+        nextTurnExploreSurroundings.append(emptySpace)
+    }
+
+    let turnInfoSection = document.getElementsByClassName('odehraj odehraj-odtah').item(0);
+
+    // remove label "Nastal další měsíc ...", cos it is useless (always the same, no value)
+    let nextTurnLabel = getElementByText('Nastal další měsíc', turnInfoSection, 'b', false)
+    if (nextTurnLabel) {
+        nextTurnLabel.nextSibling.remove() //remove also newline after the turn label, so it shrinks the info section
+        nextTurnLabel.remove() //remove the label itself
+    }
+
+    //remove label "Naše předzvěst upadla: ", cos it is useless (player can't affect it, and absolute value of predzvest is visible on the main page)
+    //need to find the value elem first (label elem is pure text, not a searchable elem), cos it is a searchable red text
+    let predzvestLostValue = getElementByAttributeValue('color', '#ff0000', turnInfoSection, 'font')
+    if (predzvestLostValue && Number(predzvestLostValue.textContent.replace(',', ''))) { //verify it is really the correct red text we want
+        predzvestLostValue.previousSibling.remove() //remove label
+        predzvestLostValue.nextSibling.remove() //remove line break
+        predzvestLostValue.remove() //remove value
+    }
+    console.log('predzvest value:', predzvestLostValue, 'after', predzvestLostValue.nextSibling, 'before', predzvestLostValue.previousSibling)
+
+    //let predzvestLost = getElementByText('Naše předzvěst upadla:', turnInfoSection)
+    //let predzvestLost = getElementByText('Naše předzvěst upadla: ', turnInfoSection, 'text', false)
+    // if (predzvestLost) {
+    //     predzvestLost.nextSibling.remove() //remove also newline after the label, so it shrinks the info section
+    //     predzvestLost.remove() //remove the label itself
+    // }
+}
+
 /**Add option to sidebar on the main page "Add clan leader to army", so user can simply 1-click it (no need to open army, scroll, add, close...) */
 async function tweak_sidebarAddArmyLeaderOption() {
     if (window.location.pathname !== '/main.php') {
@@ -64,7 +103,7 @@ async function tweak_quickAttackButton() {
         quickAttackButton.style.fontSize = 'large';
         quickAttackButton.style.cursor = 'pointer'; //change cursor same as on events
         quickAttackButton.style.marginRight = '10px'; //space between event & button (horizontal)
-        quickAttackButton.style.marginTop = '7px'; //space between button & other button (vertical, for multiple events)
+        quickAttackButton.style.marginBottom = '7px'; //space between button & other button (vertical, for multiple events)
         quickAttackButton.style.padding = '2px'; //button area around text
         quickAttackButton.style.backgroundColor = '#15497b';
         quickAttackButton.style.color = '#c0d6ee';
