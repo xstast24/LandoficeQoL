@@ -158,7 +158,7 @@ async function tweak_sidebarCopyArmyOption() {
 
     let copyArmyOption = createSidebarOption('Zkopírovat armádu');
     copyArmyOption.addEventListener('click', function (event) {
-        fetch(clanArmyURL) //TODO convert to common method to get resultDocument easily
+        fetch(clanArmyURL)
             .then(result => result.text())
             .then(resultHtmlString => {
                 const resultDocument = new DOMParser().parseFromString(resultHtmlString, 'text/html');
@@ -173,11 +173,6 @@ async function tweak_sidebarCopyArmyOption() {
                     if (!unitName) {
                         unitName = unit.getElementsByTagName('font').item(0).textContent;
                     } //works for all specials
-
-                    //WORKAROUND: simulator has bug - it doesn't know Dralgar units called *kopiník*, it needs to input them with extra J like *kopijník*
-                    if (unitName.includes('kopiník')) {
-                        unitName = unitName.replace('kopiník', 'kopijník')
-                    }
 
                     let unitCount = unit.nextElementSibling.textContent; //count is in the next column (next <td> on the same elem level)
 
