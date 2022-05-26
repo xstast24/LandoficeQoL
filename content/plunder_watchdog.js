@@ -5,7 +5,7 @@ async function plunderWatchdog() {
     const SECOND = 1000; //ms
     const MINUTE = 60000; //ms
     let updateIntervalLong = MINUTE; //in ms
-    let updateIntervalShort = 0.5*SECOND; //in ms
+    let updateIntervalShort = 0.7*SECOND; //in ms
     let nextUpdateTimeout = SECOND; //first update watchdog after 1s to quickly update basic time info; later this var is modified dynamically as needed
     //give some time between switching from short to long interval, so player can play & attack events (army gets exhausted for a few seconds) while waiting for plunder
     let gracePeriodBeforeSwitchingToLongInterval = MINUTE;
@@ -159,7 +159,7 @@ async function plunderWatchdog() {
                 if (nextTimeout === updateIntervalLong) {
                     randomizedTimeout = getRandomInt(updateIntervalLong-5*SECOND, updateIntervalLong+5*SECOND);
                 } else if (nextTimeout === updateIntervalShort) {
-                    randomizedTimeout = getRandomInt(updateIntervalShort, updateIntervalShort + 0.5*SECOND);
+                    randomizedTimeout = getRandomInt(updateIntervalShort, updateIntervalShort + 0.2*SECOND);
                 }
 
                 scheduleNextUpdate(randomizedTimeout);
@@ -445,9 +445,24 @@ async function plunderWatchdog() {
         let shortIntervalLabel = document.createElement('label');
         shortIntervalLabel.textContent = `Short interval (<30 min): ${updateIntervalShort/1000} s`
         shortIntervalLabel.setAttribute('class', 'qol-plunder-update-time-selector')
+        shortIntervalLabel.updateLabel = function () {shortIntervalLabel.textContent = `Short interval (<30 min): ${(updateIntervalShort/1000).toFixed(1)} s`}
+        let shortIntervalSelector = document.createElement('input');
+        shortIntervalSelector.setAttribute('class', 'qol-plunder-update-time-selector')
+        shortIntervalSelector.style.width = 'auto';
+        shortIntervalSelector.setAttribute('type', 'range')
+        shortIntervalSelector.setAttribute('min', `${0.1*SECOND}`)
+        shortIntervalSelector.setAttribute('max', `${1.5*SECOND}`)
+        shortIntervalSelector.value = updateIntervalShort
+        shortIntervalSelector.addEventListener('change', function () {
+            updateIntervalShort = Number(shortIntervalSelector.value)
+            shortIntervalLabel.updateLabel()
+        })
+
         parent.appendChild(longIntervalLabel)
+        parent.appendChild(document.createElement('br'))
         parent.appendChild(shortIntervalLabel)
-        return {longIntervalLabel: longIntervalLabel, shortIntervalLabel: shortIntervalLabel}
+        parent.appendChild(shortIntervalSelector)
+        return {longIntervalLabel: longIntervalLabel, shortIntervalLabel: shortIntervalLabel, shortIntervalSelector: shortIntervalSelector}
     }
 
     /**Load all 'settingsValue' attribute for all given option objects. Do it asynchronously, return a promise */
