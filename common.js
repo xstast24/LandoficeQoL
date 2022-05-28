@@ -227,6 +227,7 @@ function getRandomInt(min, max) {
  * Inspiration: https://stackoverflow.com/a/41077092/7684041, https://stackoverflow.com/a/33723682/7684041
  * */
 function initAudioEngine() {
+    if (audioEngineInitialized()) {return} //already initialized, no action needed
     window.globalAudioContext = new window.AudioContext();
     window.globalAudioContext.gainNode = window.globalAudioContext.createGain(); //https://developer.mozilla.org/en-US/docs/Web/API/GainNode
     window.globalAudioContext.gainNode.connect(window.globalAudioContext.destination);
