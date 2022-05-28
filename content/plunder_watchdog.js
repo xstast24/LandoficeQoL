@@ -55,16 +55,11 @@ async function plunderWatchdog() {
 
             //this happens if main switch button is clicked
             mainSwitch.button.addEventListener('click', function () {
-                mainSwitch.settingsValue = !mainSwitch.settingsValue;
-                saveOptionState(mainSwitch);
-                mainSwitch.setStatus(mainSwitch.settingsValue);
-                if (mainSwitch.settingsValue === true) {
-                    nextUpdateTimeout = updateIntervalShort
-                    scheduleNextUpdate(nextUpdateTimeout)
+                if (mainSwitch.settingsValue === false) { //watchdog was turned off -> turn it on
                     initAudioEngine() //needed to play sound alert later
+                    mainSwitch.startWatchdog()
                 } else {
-                    updateStatusArea.nextUpdateTime.textContent = '-'
-                    clearAllTimeouts()
+                    mainSwitch.stopWatchdog()
                 }
             })
 
@@ -196,6 +191,8 @@ async function plunderWatchdog() {
                         if (result.ok) {
                             console.log(`Auto attack on "${place.name}" - success B-)`)
                             attackInfoArea.setAttackStatus(place, true)
+                            mainSwitch.stopWatchdog()
+                            openResultInTab(result, 'current') //load fight results directly in the plunder tab after the attack is finished
                         } else {
                             console.error(`Auto attack on "${place.name}" failed on submitting attack form! Server error or somebody was faster?`);
                             attackInfoArea.setAttackStatus(place, false)
@@ -418,9 +415,9 @@ async function plunderWatchdog() {
 
         let updateStatusArea = {label: statusLabel, status: status, time: time, nextUpdateLabel: nextUpdate, nextUpdateTime: nextUpdateTime}
         updateStatusArea.setNextUpdateTime = function (nextUpdateTimeoutMs) {
-            let currentDate = new Date();
-            currentDate.setMilliseconds(currentDate.getMilliseconds()+nextUpdateTimeoutMs);
-            updateStatusArea.nextUpdateTime.textContent = currentDate.toLocaleTimeString([], {hour12: false})
+            let nextUpdateDate = new Date();
+            nextUpdateDate.setMilliseconds(nextUpdateDate.getMilliseconds() + nextUpdateTimeoutMs);
+            updateStatusArea.nextUpdateTime.textContent = nextUpdateDate.toLocaleTimeString([], {hour12: false})
         };
         updateStatusArea.setStatusSuccess = function () {
             updateStatusArea.status.textContent = '✅';
@@ -507,7 +504,7 @@ async function plunderWatchdog() {
 
         let mainSwitch = {label: label, statusElem: status, button: button};
         mainSwitch.settingsKey = 'plunderMainSwitch';
-        mainSwitch.settingsValueDefault = false;
+        mainSwitch.settingsValueDefault = false; //false = watchdog is turned off; true = watchdog is running
         mainSwitch.settingsValue = mainSwitch.settingsValueDefault;
         mainSwitch.isRunning = function () {
             return mainSwitch.settingsValue
@@ -520,6 +517,21 @@ async function plunderWatchdog() {
                 mainSwitch.statusElem.textContent = '⬤';
                 mainSwitch.button.textContent = 'START';
             }
+        }
+        mainSwitch.startWatchdog = function () {
+            mainSwitch.settingsValue = true;
+            mainSwitch.setStatus(mainSwitch.settingsValue);
+            nextUpdateTimeout = updateIntervalShort;
+            updateStatusArea.setNextUpdateTime(nextUpdateTimeout);
+            saveOptionState(mainSwitch);
+            scheduleNextUpdate(nextUpdateTimeout);
+        }
+        mainSwitch.stopWatchdog = function () {
+            mainSwitch.settingsValue = false;
+            mainSwitch.setStatus(mainSwitch.settingsValue);
+            updateStatusArea.nextUpdateTime.textContent = '-';
+            saveOptionState(mainSwitch);
+            clearAllTimeouts();
         }
 
         return mainSwitch

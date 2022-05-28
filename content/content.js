@@ -54,7 +54,6 @@ async function tweak_mainPageUiTweaks() {
         predzvestLostValue.nextSibling.remove() //remove line break
         predzvestLostValue.remove() //remove value
     }
-    console.log('predzvest value:', predzvestLostValue, 'after', predzvestLostValue.nextSibling, 'before', predzvestLostValue.previousSibling)
 
     //let predzvestLost = getElementByText('Naše předzvěst upadla:', turnInfoSection)
     //let predzvestLost = getElementByText('Naše předzvěst upadla: ', turnInfoSection, 'text', false)
