@@ -287,3 +287,25 @@ function logarithmicValueToLinearScale(logValue, minLogValue, maxLogValue) {
     let scale = maxV - minV;
     return (Math.log(logValue)-minV) / scale;
 }
+
+/**Open given (HTML) string in a tab (new or current).
+ * @param {string} string: e.g. 'hello'; typically HTML-string like: fetch(url).then(result => result.text().then(htmlString => openStringInTab(htmlString)))
+ * @param {string} selectTab: 'new' (open in new tab) or 'current' (show the content in the current tab, rewrites the existing content)
+ * */
+function openStringInTab(string, selectTab= 'new') {
+    let tab = window.open('about:blank', '_blank'); //_self = this tab, _blank = new tab
+    tab.document.write(htmlString); // where 'result' is a variable containing your HTML
+    tab.document.close(); // to finish loading the page
+}
+
+/**Open HTML content of the given result in a tab (new or current).
+ * @param {Response} result: typically result of fetch(url), e.g. fetch(url).then(result => openResultInTab(result)))
+ * @param {string} selectTab: 'new' (open in new tab) or 'current' (show the content in the current tab, rewrites the existing content)
+ * */
+function openResultInTab(result, selectTab = 'new') {
+    let tab = window.open('about:blank', '_self'); //_self = this tab, _blank = new tab
+    result.text().then(htmlString => {
+        tab.document.write(htmlString); // where 'result' is a variable containing your HTML
+        tab.document.close(); // to finish loading the page
+    })
+}
