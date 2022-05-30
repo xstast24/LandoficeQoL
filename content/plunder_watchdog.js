@@ -192,7 +192,8 @@ async function plunderWatchdog() {
                             console.log(`Auto attack on "${place.name}" - success B-)`)
                             attackInfoArea.setAttackStatus(place, true)
                             mainSwitch.stopWatchdog()
-                            openResultInTab(result, 'current') //load fight results directly in the plunder tab after the attack is finished
+                            sleep(1000) //FIXME showing blank page sometimes - will sleep help?
+                                .then(r => openResultInTab(result, 'current')); //load fight results directly in the plunder tab after the attack is finished)
                         } else {
                             console.error(`Auto attack on "${place.name}" failed on submitting attack form! Server error or somebody was faster?`);
                             attackInfoArea.setAttackStatus(place, false)
